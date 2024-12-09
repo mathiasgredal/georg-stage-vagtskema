@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "georgstage"
+authors = [
+    { name = "Pimin Konstantin Kefaloukos", email = "skipperkongen@gmail.com" }
+]
+description = "Library for Georg Stage"
+version = "0.2.19"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "numpy",
+    "pandas",
+    "pulp",
+]
+
+[project.optional-dependencies]
+tests = [
+    'build',
+    'twine',
+    'pytest',
+    'flake8',
+]
+
+[tool.setuptools.packages.find]
+# All the following settings are optional:
+where = ["src"]  # ["."] by default
+
