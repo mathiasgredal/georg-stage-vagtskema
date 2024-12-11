@@ -1,177 +1,190 @@
 import tkinter as tk
+from datetime import datetime, timedelta
 from tkinter import ttk
-from georgstage.model import VagtPeriode
-from datetime import datetime
+
+from georgstage.model import VagtPeriode, VagtType, VagtSkifte
+from georgstage.registry import Registry
+from uuid import UUID, uuid4
 
 class VagtPeriodeTab(ttk.Frame):
-    def __init__(
-        self, parent, vagtperioder: list[VagtPeriode], on_save, *args, **kwargs
-    ):
-        ttk.Frame.__init__(self, parent, padding=(5, 5, 12, 0), *args, **kwargs)
+    def __init__(self, parent: tk.Misc, registry: Registry) -> None:
+        ttk.Frame.__init__(self, parent, padding=(5, 5, 12, 5))
+        self.registry = registry
 
-        self.vagtperioder = vagtperioder
-        self.on_save = on_save
         # State variables
         self.vagtperiode_type = tk.StringVar()
         self.selected_shift = tk.StringVar()
         self.vagtperioder_var = tk.Variable()
-        self.note_var = tk.Variable()
+        self.note_var = tk.StringVar()
 
         self.vagtperioder_listbox = tk.Listbox(
             self, listvariable=self.vagtperioder_var, height=15, selectmode=tk.SINGLE
         )
-        self.vagtperioder_listbox.bind("<<ListboxSelect>>", self.on_select_period)
+        self.vagtperioder_listbox.bind('<<ListboxSelect>>', self.on_select_period)
 
         # Vagtperiode Form
-        self.type_label = ttk.Label(self, text="Type af vagtperiode:")
+        self.vagtperiode_frame = ttk.Frame(self)
+        self.type_label = ttk.Label(self.vagtperiode_frame, text='Type af vagtperiode:')
         self.type_opt1 = ttk.Radiobutton(
-            self, text="Søvagt", variable=self.vagtperiode_type, value="Søvagt"
+            self.vagtperiode_frame, text='Søvagt', variable=self.vagtperiode_type, value=VagtType.SOEVAGT.value
         )
         self.type_opt2 = ttk.Radiobutton(
-            self, text="Havnevagt", variable=self.vagtperiode_type, value="Havnevagt"
+            self.vagtperiode_frame, text='Havnevagt', variable=self.vagtperiode_type, value=VagtType.HAVNEVAGT.value
         )
         self.type_opt3 = ttk.Radiobutton(
-            self, text="Ankervagt", variable=self.vagtperiode_type, value="Ankervagt"
-        )
-        self.type_opt4 = ttk.Radiobutton(
-            self, text="Holmen", variable=self.vagtperiode_type, value="Holmen"
+            self.vagtperiode_frame, text='Holmen', variable=self.vagtperiode_type, value=VagtType.HOLMEN.value
         )
 
-        self.startdate_label = ttk.Label(self, text="Start:")
+        self.startdate_label = ttk.Label(self.vagtperiode_frame, text='Start:')
         self.startdate_var = tk.StringVar()
-        self.startdate_entry = ttk.Entry(self, textvariable=self.startdate_var)
+        self.startdate_entry = ttk.Entry(self.vagtperiode_frame, textvariable=self.startdate_var)
 
-        self.enddate_label = ttk.Label(self, text="Slut:")
+        self.enddate_label = ttk.Label(self.vagtperiode_frame, text='Slut:')
         self.enddate_var = tk.StringVar()
-        self.enddate_entry = ttk.Entry(self, textvariable=self.enddate_var)
+        self.enddate_entry = ttk.Entry(self.vagtperiode_frame, textvariable=self.enddate_var)
 
-        self.vagttørn_label = ttk.Label(self, text="Vagttørn:")
-        self.vagttørn_entry = ttk.Combobox(
-            self, width=10, textvariable=self.selected_shift
+        self.vagtskifte_label = ttk.Label(self.vagtperiode_frame, text='Begyndende skifte:')
+        self.vagtskifte_opts = {' 1#': VagtSkifte.SKIFTE_1, ' 2#': VagtSkifte.SKIFTE_2, ' 3#': VagtSkifte.SKIFTE_3}
+        self.vagtskifte_entry = ttk.OptionMenu(
+            self.vagtperiode_frame,
+            self.selected_shift,
+            list(self.vagtskifte_opts.keys())[0],
+            *self.vagtskifte_opts.keys(),
         )
-        self.vagttørn_entry["values"] = (" 1#", " 2#", " 3#")
-        self.vagttørn_entry.current(0)
 
-        self.note_label = ttk.Label(self, text="Note:")
-        self.note_entry = ttk.Entry(self, textvariable=self.note_var)
+        self.note_label = ttk.Label(self.vagtperiode_frame, text='Note:')
+        self.note_entry = ttk.Entry(self.vagtperiode_frame, textvariable=self.note_var)
 
         self.add_remove_frame = ttk.Frame(self)
-        self.add = ttk.Button(
-            self.add_remove_frame, text="Tilføj...", command=self.add_item
-        )
-        self.remove = ttk.Button(
-            self.add_remove_frame, text="Fjern", command=self.remove_item
-        )
-        self.send = ttk.Button(
-            self, text="Gem", default="active", command=self.save_action
-        )
+        self.add = ttk.Button(self.add_remove_frame, text='Tilføj...', command=self.add_item)
+        self.remove = ttk.Button(self.add_remove_frame, text='Fjern', command=self.remove_item)
+        self.send_btn = ttk.Button(self, text='Gem', default='active', command=self.save_action)
 
         # Grid all the widgets
         self.vagtperioder_listbox.grid(
-            column=0, row=0, rowspan=13, sticky=(tk.N, tk.S, tk.E, tk.W)
+            column=0,
+            row=0,
+            sticky='nsew',
         )
 
-        self.type_label.grid(column=1, row=0, sticky=tk.W, padx=10, pady=5)
-        self.type_opt1.grid(column=1, row=1, sticky=tk.W, padx=20)
-        self.type_opt2.grid(column=1, row=2, sticky=tk.W, padx=20)
-        self.type_opt3.grid(column=1, row=3, sticky=tk.W, padx=20)
-        self.type_opt4.grid(column=1, row=4, sticky=tk.W, padx=20)
+        self.vagtperiode_frame.grid(column=1, row=0, sticky='wn')
 
-        self.startdate_label.grid(column=1, row=5, sticky=tk.W, padx=10)
-        self.startdate_entry.grid(column=1, row=6, sticky=tk.W, padx=20)
+        self.type_label.grid(column=0, row=0, sticky='w', padx=10, pady=5)
+        self.type_opt1.grid(column=0, row=1, sticky='w', padx=20)
+        self.type_opt2.grid(column=0, row=2, sticky='w', padx=20)
+        self.type_opt3.grid(column=0, row=4, sticky='w', padx=20)
 
-        self.enddate_label.grid(column=1, row=7, sticky=tk.W, padx=10)
-        self.enddate_entry.grid(column=1, row=8, sticky=tk.W, padx=20)
+        self.startdate_label.grid(column=0, row=5, sticky='w', padx=10)
+        self.startdate_entry.grid(column=0, row=6, sticky='w', padx=20)
 
-        self.vagttørn_label.grid(column=1, row=9, sticky=tk.W, padx=10)
-        self.vagttørn_entry.grid(column=1, row=10, sticky=tk.W, padx=20)
+        self.enddate_label.grid(column=0, row=7, sticky='w', padx=10)
+        self.enddate_entry.grid(column=0, row=8, sticky='w', padx=20)
 
-        self.note_label.grid(column=1, row=11, sticky=tk.W, padx=10)
-        self.note_entry.grid(column=1, row=12, sticky=tk.W, padx=20)
+        self.vagtskifte_label.grid(column=0, row=9, sticky='w', padx=10)
+        self.vagtskifte_entry.grid(column=0, row=10, sticky='w', padx=20)
 
-        self.send.grid(
-            column=2,
-            row=14,
-            pady=10,
-        )
-        self.add_remove_frame.grid(column=0, row=14, columnspan=2, sticky=(tk.W, tk.E))
+        self.note_label.grid(column=0, row=11, sticky='w', padx=10)
+        self.note_entry.grid(column=0, row=12, sticky='w', padx=20)
+
+        self.send_btn.grid(column=1, row=1, sticky=tk.E)
+        self.add_remove_frame.grid(column=0, row=1, pady=(5, 0), sticky='we')
 
         self.add.grid(column=0, row=1, sticky=(tk.W))
         self.remove.grid(column=1, row=1, sticky=(tk.W), padx=10)
 
         # Make the listbox column expand
-        self.grid_columnconfigure(0, weight=1)
-        
+        self.grid_columnconfigure(0, weight=2)
+        self.grid_rowconfigure(0, weight=1)
+
         # Select the first item
-        self.selected_index = 0
+        self.selected_vp_id: UUID | None = self.registry.vagtperioder[0].id if len(self.registry.vagtperioder) > 0 else None
         self.sync_form()
         self.sync_list()
-        self.vagtperioder_listbox.selection_set(0)
 
-    def on_select_period(self, event):
+    def on_select_period(self, event: tk.Event) -> None:  # type: ignore
         w = event.widget
         if len(w.curselection()) == 0:
             return
         index = int(w.curselection()[0])
-        self.selected_index = index
+        self.selected_vp_id = self.registry.vagtperioder[index].id
         self.sync_form()
 
-    def sync_list(self):
-        self.vagtperioder_var.set(
-            [vagtperiode.to_string() for vagtperiode in self.vagtperioder]
-        )
+    def sync_list(self) -> None:
+        self.vagtperioder_var.set([vagtperiode.to_string() for vagtperiode in self.registry.vagtperioder])
         self.vagtperioder_listbox.select_clear(0, tk.END)
-        self.vagtperioder_listbox.selection_set(self.selected_index)
+        selected_index = self._get_vp_index(self.selected_vp_id)
+        if selected_index is not None:
+            self.vagtperioder_listbox.selection_set(selected_index)
+        for i in range(0, len(self.vagtperioder_var.get()), 2):  # type: ignore
+            self.vagtperioder_listbox.itemconfigure(i, background='#f0f0ff')
 
-        for i in range(0, len(self.vagtperioder_var.get()), 2):
-            self.vagtperioder_listbox.itemconfigure(i, background="#f0f0ff")
+    def sync_form(self) -> None:
+        """Sync the form with the selected item"""
+        if len(self.registry.vagtperioder) == 0:
+            return
 
-    def sync_form(self):
-        self.startdate_var.set(
-            self.vagtperioder[self.selected_index].start.strftime("%Y-%m-%d %H:%M")
-        )
-        self.enddate_var.set(
-            self.vagtperioder[self.selected_index].end.strftime("%Y-%m-%d %H:%M")
-        )
-        self.vagttørn_entry.current(
-            self.vagtperioder[self.selected_index].starting_shift - 1
-        )
-        self.vagtperiode_type.set(self.vagtperioder[self.selected_index].vagttype)
-        self.note_var.set(self.vagtperioder[self.selected_index].note)
+        if self.selected_vp_id is None:
+            self.selected_vp_id = self.registry.vagtperioder[0].id
 
-    def save_action(self):
-        self.vagtperioder[self.selected_index].vagttype = self.vagtperiode_type.get()
-        self.vagtperioder[self.selected_index].start = datetime.fromisoformat(
-            self.startdate_var.get()
+        selected_vagtperiode = self.registry.get_vagtperiode_by_id(self.selected_vp_id)
+        self.startdate_var.set(selected_vagtperiode.start.strftime('%Y-%m-%d %H:%M'))
+        self.enddate_var.set(selected_vagtperiode.end.strftime('%Y-%m-%d %H:%M'))
+        for key, value in self.vagtskifte_opts.items():
+            if value == selected_vagtperiode.starting_shift:
+                self.selected_shift.set(key)
+                break
+        self.vagtperiode_type.set(selected_vagtperiode.vagttype.value)
+        self.note_var.set(selected_vagtperiode.note)
+
+    def save_action(self) -> None:
+        if len(self.registry.vagtperioder) == 0:
+            return
+
+        new_vagtperiode = VagtPeriode(
+            self.selected_vp_id,
+            VagtType(self.vagtperiode_type.get()),
+            datetime.fromisoformat(self.startdate_var.get()),
+            datetime.fromisoformat(self.enddate_var.get()),
+            self.note_var.get(),
+            self.vagtskifte_opts[self.selected_shift.get()],
         )
-        self.vagtperioder[self.selected_index].end = datetime.fromisoformat(
-            self.enddate_var.get()
-        )
-        self.vagtperioder[self.selected_index].starting_shift = (
-            self.vagttørn_entry["values"].index(self.vagttørn_entry.get()) + 1
-        )
-        self.vagtperioder[self.selected_index].note = self.note_var.get()
+        self.registry.update_vagtperiode(self.selected_vp_id, new_vagtperiode)
         self.sync_list()
-        self.on_save()
-        # print(json.dumps(self.vagtperioder, cls=EnhancedJSONEncoder, ensure_ascii=False))
 
-    def add_item(self):
-        self.vagtperioder.append(
+    def add_item(self) -> None:
+        last_vp = self.registry.vagtperioder[-1] if len(self.registry.vagtperioder) > 0 else None
+        next_start_date = last_vp.end if last_vp is not None else datetime.now().replace(minute=0)
+        next_end_date = next_start_date + timedelta(days=2)
+        self.registry.add_vagtperiode(
             VagtPeriode(
-                "Søvagt",
-                datetime.fromisoformat("2024-12-02 10:00"),
-                datetime.fromisoformat("2024-12-06 14:00"),
-                "Korsør-Helsinki",
-                2,
+                id=uuid4(),
+                vagttype=VagtType.SOEVAGT,
+                start=next_start_date,
+                end=next_end_date,
+                note='FRA-TIL',
+                starting_shift=VagtSkifte.SKIFTE_1,
             )
         )
-        self.selected_index = len(self.vagtperioder) - 1
+        self.selected_vp_id = self.registry.vagtperioder[-1].id
         self.sync_form()
         self.sync_list()
 
-    def remove_item(self):
-        del self.vagtperioder[self.selected_index]
-        if self.selected_index >= len(self.vagtperioder) - 1:
-            self.selected_index = len(self.vagtperioder) - 1
+    def remove_item(self) -> None:
+        if len(self.registry.vagtperioder) == 0:
+            return
+        
+        self.registry.remove_vagtperiode(self.registry.get_vagtperiode_by_id(self.selected_vp_id))
+
+        self.selected_vp_id = self.registry.vagtperioder[-1].id if len(self.registry.vagtperioder) > 0 else None
+        
         self.sync_form()
         self.sync_list()
+
+    def _get_vp_index(self, vp_id: UUID | None) -> int | None:
+        if vp_id is None:
+            return None
+
+        for i, vp in enumerate(self.registry.vagtperioder):
+            if vp.id == vp_id:
+                return i
+        return None

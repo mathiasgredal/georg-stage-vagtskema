@@ -168,3 +168,10 @@ skifte får to perioder per dag
 Der findes også ankervagter, men det kører en smule anderledes.
 
 
+
+
+
+
+
+- Når man trykker gem, så skal vagtlisten valideres i.e. ingen dobbeltnumre eller ugyldige numre
+- Når man trykker autofill, så skal den også gemme

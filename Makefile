@@ -1,13 +1,21 @@
-test:
-	pytest -vv
-.PHONY: test
+sources = src tests 
 
-lint:
-	flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
-	flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+.venv:
+	rm -rf .venv
+	uv venv
+	uv pip install -e '.[dev]'
+	echo 'venv created'
+
 .PHONY: lint
+lint: .venv
+	@echo 'linting' & \
+	uv run ruff check src & \
+	uv run ruff format --check src & \
+	echo 'linting done' & \
+	uv run mypy src
 
-run_local:
-	echo 'running local'
-	python src/georgstage/cli.py
-.PHONY: run_local
+.PHONY: run
+run: .venv
+	@echo 'running' & \
+	uv run python src/main.py & \
+	echo 'running done'

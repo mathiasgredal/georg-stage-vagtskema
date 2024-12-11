@@ -1,0 +1,9 @@
+{
+    "files.exclude": {
+        "**/*.egg-info": true,
+        "**/__pycache__": true,
+        "**/.mypy_cache": true,
+        "**/.ruff_cache": true,
+    },
+    "editor.formatOnSave": true
+}

@@ -3,29 +3,55 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "georgstage"
+name = "georg-stage-vagtskema"
 authors = [
-    { name = "Pimin Konstantin Kefaloukos", email = "skipperkongen@gmail.com" }
+    { name = "Mathias Gredal", email = "mathiasgredal@icloud.com" }
 ]
-description = "Library for Georg Stage"
-version = "0.2.19"
+version = "0.0.1"
 readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
-    "numpy",
-    "pandas",
-    "pulp",
+    "pydantic",
 ]
 
 [project.optional-dependencies]
-tests = [
-    'build',
-    'twine',
-    'pytest',
-    'flake8',
+dev = [
+    'mypy',
+    'ruff',
 ]
 
 [tool.setuptools.packages.find]
-# All the following settings are optional:
-where = ["src"]  # ["."] by default
+where = ["src"]
 
+[tool.ruff]
+line-length = 120
+target-version = 'py38'
+
+[tool.ruff.lint]
+select = [
+    'F',      # Pyflakes
+    'E',      # pycodestyle (Error)
+    'I',      # isort
+    'D',      # pydocstyle
+    'UP',     # pyupgrade
+    'YTT',    # flake8-2020
+    'B',      # flake8-bugbear
+    'T10',    # flake8-debugger
+    'T20',    # flake8-print
+    'C4',     # flake8-comprehensions
+    'PYI006', # flake8-pyi
+    'PYI062', # flake8-pyi
+    'PYI063', # flake8-pyi
+    'PYI066', # flake8-pyi
+]
+ignore = ['D105', 'D107', 'D205', 'D415', 'E501', 'B011', 'B028', 'B904']
+flake8-quotes = {inline-quotes = 'single', multiline-quotes = 'double'}
+isort = { known-first-party = ['georgstage'] }
+mccabe = { max-complexity = 14 }
+pydocstyle = { convention = 'google' }
+
+[tool.ruff.format]
+quote-style = 'single'
+
+[tool.mypy]
+strict = 'True'

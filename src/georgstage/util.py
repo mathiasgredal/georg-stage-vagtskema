@@ -1,7 +1,7 @@
-import json
 import dataclasses
-from datetime import datetime, timedelta
-from georgstage.model import Opgave
+import json
+from datetime import datetime
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -11,4 +11,3 @@ class EnhancedJSONEncoder(json.JSONEncoder):
             return obj.isoformat()
         else:
             return super().default(obj)
-
