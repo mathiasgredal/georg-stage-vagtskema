@@ -2,9 +2,12 @@ import tkinter as tk
 from tkinter import ttk
 
 from georgstage.model import Opgave, Vagt, VagtListe, VagtTid, VagtSkifte
-from georgstage.solver import autofill_vagtliste
+from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid
 from georgstage.registry import Registry
-
+from georgstage.util import make_cell
+from georgstage.validator import validate_vagtliste
+from pydantic import TypeAdapter
+from tkinter import messagebox as mb
 
 class VagtListeTab(ttk.Frame):
     def __init__(self, parent: tk.Misc, registry: Registry) -> None:
@@ -59,7 +62,6 @@ class VagtListeTab(ttk.Frame):
         self.sync_list()
 
     def on_registry_change(self) -> None:
-        print('Registry changed')
         self.sync_list()
 
     def make_søvagt_table(self) -> ttk.Frame:
@@ -90,18 +92,18 @@ class VagtListeTab(ttk.Frame):
             VagtTid.T04_08,
         ]
 
-        self.make_box(table_frame, 0, 0, '', 15, True, self.table_header_var)
+        make_cell(table_frame, 0, 0, '', 15, True, self.table_header_var)
 
         for index, opgave in enumerate(vagt_opgaver):
-            self.make_box(table_frame, index + 1, 0, opgave.value, 15, True)
+            make_cell(table_frame, index + 1, 0, opgave.value, 15, True)
 
         for index, time in enumerate(vagt_tider):
-            self.make_box(table_frame, 0, index + 1, time.value, 8, True)
+            make_cell(table_frame, 0, index + 1, time.value, 8, True)
 
         for col, time in enumerate(vagt_tider):
             for row, opgave in enumerate(vagt_opgaver):
                 self.selected_vagtliste_var[(time, opgave)] = tk.StringVar()
-                self.make_box(
+                make_cell(
                     table_frame,
                     row + 1,
                     col + 1,
@@ -117,12 +119,26 @@ class VagtListeTab(ttk.Frame):
         for (tid, opgave), sv in self.selected_vagtliste_var.items():
             if opgave == Opgave.ELEV_VAGTSKIFTE:
                 continue
-            if tid not in self.registry.vagtlister[self.selected_index].vagter:
-                self.registry.vagtlister[self.selected_index].vagter[tid] = Vagt(VagtSkifte.SKIFTE_1, {})
+
+            selected_vagtliste = self.registry.vagtlister[self.selected_index]
+
+            if tid not in selected_vagtliste.vagter:
+                continue
+            unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(TypeAdapter(VagtListe).dump_json(selected_vagtliste))
+            if tid not in unvalidated_vagtliste.vagter:
+                skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)
+                unvalidated_vagtliste.vagter[tid] = Vagt(skifte, {})
             if sv.get() == '':
-                self.registry.vagtlister[self.selected_index].vagter[tid].opgaver.pop(opgave, None)
+                unvalidated_vagtliste.vagter[tid].opgaver.pop(opgave, None)
             else:
-                self.registry.vagtlister[self.selected_index].vagter[tid].opgaver[opgave] = int(sv.get())
+                unvalidated_vagtliste.vagter[tid].opgaver[opgave] = int(sv.get())
+            
+            validation_result = validate_vagtliste(unvalidated_vagtliste)
+            if validation_result is not None:
+                mb.showerror('Fejl', f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}')
+                return
+            else:
+                self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
     def sync_list(self) -> None:
         self.vagtliste_var.set(
@@ -154,26 +170,6 @@ class VagtListeTab(ttk.Frame):
 
         for i in range(0, len(self.vagtliste_var.get()), 2):  # type: ignore
             self.vagtliste_listbox.itemconfigure(i, background='#f0f0ff')
-
-    def make_box(
-        self, parent: tk.Misc, row: int, col: int, text: str, width: int, readonly: bool, sv: tk.StringVar | None = None
-    ) -> None:
-        entry1 = tk.Entry(
-            parent,
-            textvariable=sv if sv is not None else tk.StringVar(self, value=text),
-            width=width,
-            highlightthickness=0,
-            borderwidth=1,
-            relief='ridge',
-        )
-        if readonly:
-            entry1.configure(validatecommand=self.vcmd)
-            entry1.configure(takefocus=False)
-            entry1.configure(state='disabled')
-            entry1.configure(disabledbackground='white', disabledforeground='black')
-        entry1.update()
-        entry1.configure(validate='key')
-        entry1.grid(row=row, column=col + 2)
 
     def autofill_action(self) -> None:
         self.save_action()

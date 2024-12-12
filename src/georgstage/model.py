@@ -4,6 +4,7 @@ from enum import Enum, unique
 from pydantic.dataclasses import dataclass
 from uuid import UUID, uuid4
 
+
 def next_datetime(current: datetime, hour: int, **kwargs) -> datetime:
     repl = current.replace(hour=hour, **kwargs)
     while repl <= current:
@@ -123,7 +124,11 @@ class VagtPeriode:
             current_shift = self.starting_shift.value
             result = []
             for date in vagtliste_dates:
-                result.append(VagtListe(uuid4(), self.id,self.vagttype, date[0], date[1], self.note, VagtSkifte(current_shift), {}))
+                result.append(
+                    VagtListe(
+                        uuid4(), self.id, self.vagttype, date[0], date[1], self.note, VagtSkifte(current_shift), {}
+                    )
+                )
                 current_shift = (current_shift % 3) + 1
             return result
         else:

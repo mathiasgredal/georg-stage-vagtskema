@@ -6,6 +6,7 @@ from georgstage.model import VagtPeriode, VagtType, VagtSkifte
 from georgstage.registry import Registry
 from uuid import UUID, uuid4
 
+
 class VagtPeriodeTab(ttk.Frame):
     def __init__(self, parent: tk.Misc, registry: Registry) -> None:
         ttk.Frame.__init__(self, parent, padding=(5, 5, 12, 5))
@@ -74,16 +75,16 @@ class VagtPeriodeTab(ttk.Frame):
         self.type_opt2.grid(column=0, row=2, sticky='w', padx=20)
         self.type_opt3.grid(column=0, row=4, sticky='w', padx=20)
 
-        self.startdate_label.grid(column=0, row=5, sticky='w', padx=10)
+        self.startdate_label.grid(column=0, row=5, sticky='w', padx=10, pady=(5, 0))
         self.startdate_entry.grid(column=0, row=6, sticky='w', padx=20)
 
-        self.enddate_label.grid(column=0, row=7, sticky='w', padx=10)
+        self.enddate_label.grid(column=0, row=7, sticky='w', padx=10, pady=(5, 0))
         self.enddate_entry.grid(column=0, row=8, sticky='w', padx=20)
 
-        self.vagtskifte_label.grid(column=0, row=9, sticky='w', padx=10)
-        self.vagtskifte_entry.grid(column=0, row=10, sticky='w', padx=20)
+        self.vagtskifte_label.grid(column=0, row=9, sticky='w', padx=10, pady=(5, 0))
+        self.vagtskifte_entry.grid(column=0, row=10, sticky='w', padx=20, pady=2.5)
 
-        self.note_label.grid(column=0, row=11, sticky='w', padx=10)
+        self.note_label.grid(column=0, row=11, sticky='w', padx=10, pady=(5, 0))
         self.note_entry.grid(column=0, row=12, sticky='w', padx=20)
 
         self.send_btn.grid(column=1, row=1, sticky=tk.E)
@@ -97,7 +98,9 @@ class VagtPeriodeTab(ttk.Frame):
         self.grid_rowconfigure(0, weight=1)
 
         # Select the first item
-        self.selected_vp_id: UUID | None = self.registry.vagtperioder[0].id if len(self.registry.vagtperioder) > 0 else None
+        self.selected_vp_id: UUID | None = (
+            self.registry.vagtperioder[0].id if len(self.registry.vagtperioder) > 0 else None
+        )
         self.sync_form()
         self.sync_list()
 
@@ -172,11 +175,11 @@ class VagtPeriodeTab(ttk.Frame):
     def remove_item(self) -> None:
         if len(self.registry.vagtperioder) == 0:
             return
-        
+
         self.registry.remove_vagtperiode(self.registry.get_vagtperiode_by_id(self.selected_vp_id))
 
         self.selected_vp_id = self.registry.vagtperioder[-1].id if len(self.registry.vagtperioder) > 0 else None
-        
+
         self.sync_form()
         self.sync_list()
 

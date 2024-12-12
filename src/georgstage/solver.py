@@ -4,6 +4,7 @@ from typing import Any, Optional, cast
 
 from georgstage.model import Opgave, Vagt, VagtListe, VagtSkifte, VagtTid
 
+kabys_elev_nrs = [0, 9, 61, 62, 63]
 
 def get_skifte_from_elev_nr(elev_nr: int) -> VagtSkifte:
     if elev_nr >= 1 and elev_nr <= 20:
@@ -52,6 +53,7 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
     skifte_stats = filter_by_skifte(skifte, stats)
 
     # TODO: Instead of making some numbers completely unavailable, we should just weight them so they are less likely to be picked
+    # TODO: Add pejlegast B from yesterday as unavailble number
     unavailable_numbers: list[int] = []
 
     if not Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
@@ -91,9 +93,10 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
                     prev_vagter.append(elev_nr)
 
     for fysisk_vagt in fysiske_vagter:
-        vagt.opgaver[fysisk_vagt] = pick_least(
-            [*unavailable_numbers, *prev_vagter], filter_by_opgave(fysisk_vagt, skifte_stats)
-        )
+        if not fysisk_vagt in vagt.opgaver:
+            vagt.opgaver[fysisk_vagt] = pick_least(
+                [*unavailable_numbers, *prev_vagter], filter_by_opgave(fysisk_vagt, skifte_stats)
+            )
         unavailable_numbers.append(vagt.opgaver[fysisk_vagt])
 
     udsætningsgast_opgaver = [
@@ -104,13 +107,15 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
         Opgave.UDSAETNINGSGAST_E,
     ]
     for opgave in udsætningsgast_opgaver:
-        vagt.opgaver[opgave] = pick_least(unavailable_numbers, filter_by_opgave(opgave, skifte_stats))
+        if not opgave in vagt.opgaver:
+            vagt.opgaver[opgave] = pick_least(unavailable_numbers, filter_by_opgave(opgave, skifte_stats))
         unavailable_numbers.append(vagt.opgaver[opgave])
 
     if time in [VagtTid.T04_08, VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]:
-        vagt.opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
-            unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
-        )
+        if not Opgave.DAEKSELEV_I_KABYS in vagt.opgaver:
+            vagt.opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
+                unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
+            )
         unavailable_numbers.append(vagt.opgaver[Opgave.DAEKSELEV_I_KABYS])
 
     if time == VagtTid.T15_20:
@@ -189,8 +194,8 @@ def pick_least(unavailable_numbers: list[int], stats: dict[tuple[Opgave, int], i
 def count_vagt_stats(all_vls: list[VagtListe]) -> dict[tuple[Opgave, int], int]:
     vagt_stats: dict[tuple[Opgave, int], int] = {}
 
-    for i in range(63):
-        if i in [0, 9, 61, 62, 63]:
+    for i in range(1,64):
+        if i in kabys_elev_nrs:
             continue
 
         for opg in Opgave._member_map_.values():
@@ -204,18 +209,23 @@ def count_vagt_stats(all_vls: list[VagtListe]) -> dict[tuple[Opgave, int], int]:
     return vagt_stats
 
 
-def autofill_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
-    # TODO: Make this dependant on the vagttype
-    vagttider: list[VagtTid] = generate_vagttider(vl.start, vl.end)
+def søvagt_skifte_for_vagttid(begyndende_skifte: VagtSkifte, vagttid: VagtTid) -> VagtSkifte:
     skifter: dict[VagtTid, VagtSkifte] = {}
 
     # Compute the shift for each vagt using modulo
-    for index, vagttid in enumerate(VagtTid._value2member_map_):
-        skifter[vagttid] = VagtSkifte((index + vl.starting_shift.value - 1) % 3 + 1)
+    for index, tid in enumerate(
+        [VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20, VagtTid.T20_24, VagtTid.T00_04, VagtTid.T04_08]
+    ):
+        skifter[tid] = VagtSkifte((index + begyndende_skifte.value - 1) % 3 + 1)
+    return skifter[vagttid]
+
+
+def autofill_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
+    # TODO: Make this dependant on the vagttype
+    vagttider: list[VagtTid] = generate_vagttider(vl.start, vl.end)
 
     for vagttid in vagttider:
-        skifte = skifter[vagttid.value]
-        print(f'Autofilling {vagttid.value} for {skifte}#...')
+        skifte = søvagt_skifte_for_vagttid(vl.starting_shift, vagttid)
         vl.vagter[vagttid] = autofill_vagt(skifte, vagttid, vl, all_vls)
     return None
 

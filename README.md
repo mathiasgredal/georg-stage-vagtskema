@@ -173,5 +173,18 @@ Der findes også ankervagter, men det kører en smule anderledes.
 
 
 
-- Når man trykker gem, så skal vagtlisten valideres i.e. ingen dobbeltnumre eller ugyldige numre
-- Når man trykker autofill, så skal den også gemme
+- Når man trykker gem, så skal vagtlisten valideres i.e. ingen dobbeltnumre, ugyldige numre eller numre udenfor skiftet
+- Save and load to file
+- Afmønstringer
+- Markering af ude numre f.eks. HU, Syg
+- Havnevagt og holmen
+- Autosave
+- Partial overlapping vagtlists
+- Weighted selection of vagter
+- Forbedret dato-input
+- Print til pdf
+- Fjern elev-vagtskifte celler når man autoudfylder
+- Sortering af vagtlister efter dato
+- Treeview indel i kolonner for listen af vagtperioder
+- In vagtliste tab, only allow numbers input
+- EASTER EGG: Play 6 bakke lyd når man trykker på 6. bakke

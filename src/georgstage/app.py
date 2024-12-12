@@ -1,9 +1,7 @@
 import os
 import tkinter as tk
-from datetime import datetime
 from tkinter import ttk
 
-from georgstage.model import VagtListe, VagtPeriode, VagtSkifte, VagtType
 from georgstage.tabs.export import ExportTab
 from georgstage.tabs.statistik import StatistikTab
 from georgstage.tabs.vagtliste import VagtListeTab
@@ -12,7 +10,6 @@ from georgstage.registry import Registry
 
 if os.name == 'nt':
     from ctypes import windll  # type: ignore
-
     windll.shcore.SetProcessDpiAwareness(1)
 
 
@@ -31,8 +28,8 @@ class App:
         self.tabs = {
             'Vagtperioder': VagtPeriodeTab(tabControl, self.registry),
             'Vagtliste': VagtListeTab(tabControl, self.registry),
-            'Afmønstringer': StatistikTab(tabControl),
-            'Statistik': StatistikTab(tabControl),
+            # 'Afmønstringer': StatistikTab(tabControl),
+            'Statistik': StatistikTab(tabControl, self.registry),
             'Eksport': ExportTab(tabControl),
         }
 
@@ -40,6 +37,10 @@ class App:
             tabControl.add(value, text=key)
 
         tabControl.pack(padx=0, pady=(0, 0), expand=1, fill='both')
+        tabControl.bind(
+            '<<NotebookTabChanged>>', lambda event: list(self.tabs.values())[tabControl.index('current')].focus_set()
+        )
+        ttk.Label(self.root, text=" Made by Mathias Gredal (6. bakke!!!) ", font='TkDefaultFont 12 italic').place(relx=1, y=2.5, anchor='ne')
 
     def run(self) -> None:
         self.root.mainloop()
