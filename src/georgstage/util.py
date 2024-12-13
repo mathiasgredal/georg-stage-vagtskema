@@ -15,7 +15,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 
 
 def make_cell(
-    parent: tk.Misc, row: int, col: int, text: str, width: int, readonly: bool, sv: tk.StringVar | None = None
+    parent: tk.Misc, row: int, col: int, text: str, width: int, readonly: bool, sv: tk.StringVar | None = None, **kw
 ) -> None:
     entry1 = tk.Entry(
         parent,
@@ -29,4 +29,4 @@ def make_cell(
         entry1.configure(takefocus=False)
         entry1.configure(state='disabled')
         entry1.configure(disabledbackground='white', disabledforeground='black')
-    entry1.grid(row=row, column=col + 2)
+    entry1.grid(row=row, column=col + 2, **kw)

@@ -170,21 +170,32 @@ Der findes også ankervagter, men det kører en smule anderledes.
 
 
 
+FIXED:
+- Weighted selection of vagter
 
+BUGS:
+- Partial overlapping vagtlists
+- Validation should check for invalid numbers, hvis afmønstret, numre uden for skifte
 
-
-- Når man trykker gem, så skal vagtlisten valideres i.e. ingen dobbeltnumre, ugyldige numre eller numre udenfor skiftet
+MUST:
 - Save and load to file
 - Afmønstringer
 - Markering af ude numre f.eks. HU, Syg
 - Havnevagt og holmen
-- Autosave
-- Partial overlapping vagtlists
-- Weighted selection of vagter
-- Forbedret dato-input
 - Print til pdf
-- Fjern elev-vagtskifte celler når man autoudfylder
+
+- EASTER EGG: Play 6 bakke lyd når man trykker på 6. bakke
+
+NICE TO HAVE:
+- Forbedret dato-input
+- Autosave
 - Sortering af vagtlister efter dato
 - Treeview indel i kolonner for listen af vagtperioder
 - In vagtliste tab, only allow numbers input
-- EASTER EGG: Play 6 bakke lyd når man trykker på 6. bakke
+
+
+## Havnevagt
+- 2 timers vagter
+- All day vagthavende
+- All day dækselev i kabys
+- All day vagtskifte, som bytter hver dag

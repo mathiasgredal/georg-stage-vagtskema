@@ -10,13 +10,14 @@ from georgstage.registry import Registry
 
 if os.name == 'nt':
     from ctypes import windll  # type: ignore
+
     windll.shcore.SetProcessDpiAwareness(1)
 
 
 class App:
     def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.geometry('800x450')
+        self.root.geometry('850x450')
         self.root.title('Georg Stage - Vagtlister')
 
         self.style = ttk.Style(self.root)
@@ -40,7 +41,9 @@ class App:
         tabControl.bind(
             '<<NotebookTabChanged>>', lambda event: list(self.tabs.values())[tabControl.index('current')].focus_set()
         )
-        ttk.Label(self.root, text=" Made by Mathias Gredal (6. bakke!!!) ", font='TkDefaultFont 12 italic').place(relx=1, y=2.5, anchor='ne')
+        ttk.Label(self.root, text=' Made by Mathias Gredal (6. bakke!!!) ', font='TkDefaultFont 12 italic').place(
+            relx=1, y=2.5, anchor='ne'
+        )
 
     def run(self) -> None:
         self.root.mainloop()

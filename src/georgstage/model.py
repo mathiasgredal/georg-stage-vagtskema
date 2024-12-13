@@ -36,7 +36,7 @@ class Opgave(Enum):
 @unique
 class VagtType(Enum):
     SOEVAGT = 'Søvagt'
-    HAVNEVAGT = 'Havnevagt'
+    HAVNEVAGT = 'Havn'
     HOLMEN = 'Holmen'
 
 
@@ -60,10 +60,7 @@ class VagtTid(Enum):
     T04_08 = '04-08'
 
     # Havnevagt
-    T08_10 = '08-10'
-    T10_12 = '10-12'
-    T12_14 = '12-14'
-    T14_16 = '14-16'
+    T12_16 = '12-16'
     T16_18 = '16-18'
     T18_20 = '18-20'
     T20_22 = '20-22'
@@ -90,6 +87,12 @@ class VagtListe:
     note: str
     starting_shift: VagtSkifte
     vagter: dict[VagtTid, Vagt]
+
+    def to_string(self) -> str:
+        if self.vagttype == VagtType.SOEVAGT:
+            return f"{self.vagttype.value}: {self.start.strftime('%Y-%m-%d')}"
+        else:
+            return f"{self.vagttype.value}[{self.starting_shift.value}#]: {self.start.strftime('%Y-%m-%d')}"
 
 
 @dataclass

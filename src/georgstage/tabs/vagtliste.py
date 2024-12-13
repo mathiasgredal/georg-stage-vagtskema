@@ -1,13 +1,14 @@
 import tkinter as tk
 from tkinter import ttk
 
-from georgstage.model import Opgave, Vagt, VagtListe, VagtTid, VagtSkifte
-from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid
+from georgstage.model import Opgave, Vagt, VagtListe, VagtTid, VagtSkifte, VagtType
+from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid, havne_vagt_tider
 from georgstage.registry import Registry
 from georgstage.util import make_cell
 from georgstage.validator import validate_vagtliste
 from pydantic import TypeAdapter
 from tkinter import messagebox as mb
+
 
 class VagtListeTab(ttk.Frame):
     def __init__(self, parent: tk.Misc, registry: Registry) -> None:
@@ -18,7 +19,11 @@ class VagtListeTab(ttk.Frame):
         # State variables
         self.table_header_var = tk.StringVar()
         self.vagtliste_var = tk.Variable()
-        self.selected_vagtliste_var: dict[tuple[VagtTid, Opgave], tk.StringVar] = {}
+
+        # Create a vagtlist var for each vagttype: søvagt, havnevagt, holmen
+        self.søvagt_vagtliste_var: dict[tuple[VagtTid, Opgave], tk.StringVar] = {}
+        self.havnevagt_vagtliste_var: dict[tuple[VagtTid, Opgave], tk.StringVar] = {}
+        self.holmen_vagtliste_var: dict[tuple[VagtTid, Opgave], tk.StringVar] = {}
 
         # GUI Elements
         self.vagtliste_listbox = tk.Listbox(self, listvariable=self.vagtliste_var, height=15, selectmode=tk.SINGLE)
@@ -32,12 +37,13 @@ class VagtListeTab(ttk.Frame):
         self.autofill_btn = ttk.Button(self.action_btns, text='Auto-Udfyld', command=self.autofill_action)
         self.clear_btn = ttk.Button(self.action_btns, text='Ryd', command=self.clear_all)
 
-        self.table_frame = self.make_søvagt_table()
+        self.søvagt_table_frame = self.make_søvagt_table()
+        self.havnevagt_table_frame = self.make_havnevagt_table()
+        self.holmen_table_frame = self.make_holmen_table()
 
         # Layout
         self.vagtliste_listbox.grid(column=0, row=0, rowspan=2, sticky='nsew')
         self.vert_sep.grid(column=1, row=0, rowspan=2, sticky='ns', padx=10)
-        self.table_frame.grid(column=2, row=0, sticky='nsew')
 
         self.save_btn.grid(column=2, row=0)
         self.autofill_btn.grid(column=1, row=0, padx=10)
@@ -45,7 +51,6 @@ class VagtListeTab(ttk.Frame):
         self.action_btns.grid(column=0, row=1, columnspan=3, sticky=tk.E, pady=5)
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(2, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         self.selected_index = 0
@@ -63,6 +68,51 @@ class VagtListeTab(ttk.Frame):
 
     def on_registry_change(self) -> None:
         self.sync_list()
+
+    def make_holmen_table(self) -> ttk.Frame:
+        table_frame = ttk.Frame(self)
+        return table_frame
+
+    def make_havnevagt_table(self) -> ttk.Frame:
+        table_frame = ttk.Frame(self)
+
+        make_cell(table_frame, 0, 0, '', 15, True, self.table_header_var)
+
+        for index, opgave in enumerate([Opgave.LANDGANGSVAGT_A, Opgave.LANDGANGSVAGT_B]):
+            make_cell(table_frame, index + 1, 0, opgave.value, 15, True)
+
+        for index, time in enumerate(havne_vagt_tider):
+            if time == VagtTid.ALL_DAY:
+                continue
+            make_cell(table_frame, 0, index + 1, time.value, 5, True)
+
+        for col, time in enumerate(havne_vagt_tider):
+            if time == VagtTid.ALL_DAY:
+                continue
+            for row, opgave in enumerate([Opgave.LANDGANGSVAGT_A, Opgave.LANDGANGSVAGT_B]):
+                self.havnevagt_vagtliste_var[(time, opgave)] = tk.StringVar()
+                make_cell(
+                    table_frame,
+                    row + 1,
+                    col + 1,
+                    '',
+                    5,
+                    False,
+                    self.havnevagt_vagtliste_var[(time, opgave)],
+                )
+
+        self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)] = tk.StringVar()
+        make_cell(table_frame, 4, 0, 'ELEV vagtskifte', 15, False, pady=(5, 0))
+        make_cell(table_frame, 4, 1, '', 15, False, self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)], pady=(5, 0), columnspan=4, sticky='w')
+
+        self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)] = tk.StringVar()
+        make_cell(table_frame, 5, 0, 'Vagthavende ELEV', 15, False, )
+        make_cell(table_frame, 5, 1, '', 15, False, self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)], columnspan=4, sticky='w')
+
+        self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)] = tk.StringVar()
+        make_cell(table_frame, 6, 0, 'Dækselev i kabys', 15, False, )
+        make_cell(table_frame, 6, 1, '', 15, False, self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)], columnspan=4, sticky='w')
+        return table_frame
 
     def make_søvagt_table(self) -> ttk.Frame:
         table_frame = ttk.Frame(self)
@@ -102,7 +152,7 @@ class VagtListeTab(ttk.Frame):
 
         for col, time in enumerate(vagt_tider):
             for row, opgave in enumerate(vagt_opgaver):
-                self.selected_vagtliste_var[(time, opgave)] = tk.StringVar()
+                self.søvagt_vagtliste_var[(time, opgave)] = tk.StringVar()
                 make_cell(
                     table_frame,
                     row + 1,
@@ -110,12 +160,13 @@ class VagtListeTab(ttk.Frame):
                     '',
                     8,
                     False,
-                    self.selected_vagtliste_var[(time, opgave)],
+                    self.søvagt_vagtliste_var[(time, opgave)],
                 )
 
         return table_frame
 
     def save_action(self) -> None:
+        return
         for (tid, opgave), sv in self.selected_vagtliste_var.items():
             if opgave == Opgave.ELEV_VAGTSKIFTE:
                 continue
@@ -124,7 +175,9 @@ class VagtListeTab(ttk.Frame):
 
             if tid not in selected_vagtliste.vagter:
                 continue
-            unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(TypeAdapter(VagtListe).dump_json(selected_vagtliste))
+            unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(
+                TypeAdapter(VagtListe).dump_json(selected_vagtliste)
+            )
             if tid not in unvalidated_vagtliste.vagter:
                 skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)
                 unvalidated_vagtliste.vagter[tid] = Vagt(skifte, {})
@@ -132,44 +185,88 @@ class VagtListeTab(ttk.Frame):
                 unvalidated_vagtliste.vagter[tid].opgaver.pop(opgave, None)
             else:
                 unvalidated_vagtliste.vagter[tid].opgaver[opgave] = int(sv.get())
-            
+
             validation_result = validate_vagtliste(unvalidated_vagtliste)
             if validation_result is not None:
-                mb.showerror('Fejl', f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}')
+                mb.showerror(
+                    'Fejl',
+                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
+                )
                 return
             else:
                 self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
     def sync_list(self) -> None:
-        self.vagtliste_var.set(
-            [
-                f"{vagtliste.vagttype.value}: {vagtliste.start.strftime('%Y-%m-%d')}"
-                for vagtliste in self.registry.vagtlister
-            ]
-        )
+        # Update the listbox
+        self.vagtliste_var.set([vagtliste.to_string() for vagtliste in self.registry.vagtlister])
+
+        if self.selected_index >= len(self.registry.vagtlister):
+            self.selected_index = len(self.registry.vagtlister) - 1
 
         self.vagtliste_listbox.select_clear(0, tk.END)
         self.vagtliste_listbox.selection_set(self.selected_index)
 
-        # Clear all string vars
-        for sv in self.selected_vagtliste_var.values():
-            sv.set('')
-
-        if len(self.registry.vagtlister) != 0:
-            if self.selected_index >= len(self.registry.vagtlister):
-                self.selected_index = len(self.registry.vagtlister) - 1
-            selected_vagtliste = self.registry.vagtlister[self.selected_index]
-            for time, vagt in selected_vagtliste.vagter.items():
-                self.selected_vagtliste_var[(time, Opgave.ELEV_VAGTSKIFTE)].set(f'{vagt.vagt_skifte.value}#')
-                for opgave, nr in vagt.opgaver.items():
-                    self.selected_vagtliste_var[(time, opgave)].set(str(nr))
-
-            self.table_header_var.set(
-                f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime('%Y-%m-%d')}"
-            )
-
         for i in range(0, len(self.vagtliste_var.get()), 2):  # type: ignore
             self.vagtliste_listbox.itemconfigure(i, background='#f0f0ff')
+
+        if len(self.registry.vagtlister) == 0:
+            return
+
+        # Display the correct table
+        if self.registry.vagtlister[self.selected_index].vagttype == VagtType.SOEVAGT:
+            self.havnevagt_table_frame.grid_forget()
+            self.holmen_table_frame.grid_forget()
+            self.søvagt_table_frame.grid(column=2, row=0, sticky='nsew')
+            self.sync_søvagt_table()
+        elif self.registry.vagtlister[self.selected_index].vagttype == VagtType.HAVNEVAGT:
+            self.holmen_table_frame.grid_forget()
+            self.søvagt_table_frame.grid_forget()
+            self.havnevagt_table_frame.grid(column=2, row=0, sticky='nsew')
+            self.sync_havnevagt_table()
+        elif self.registry.vagtlister[self.selected_index].vagttype == VagtType.HOLMEN:
+            self.havnevagt_table_frame.grid_forget()
+            self.søvagt_table_frame.grid_forget()
+            self.holmen_table_frame.grid(column=2, row=0, sticky='nsew')
+            self.sync_holmen_table()
+
+    def sync_søvagt_table(self) -> None:
+        for sv in self.søvagt_vagtliste_var.values():
+            sv.set('')
+
+        selected_vagtliste = self.registry.vagtlister[self.selected_index]
+        for time, vagt in selected_vagtliste.vagter.items():
+            self.søvagt_vagtliste_var[(time, Opgave.ELEV_VAGTSKIFTE)].set(f'{vagt.vagt_skifte.value}#')
+            for opgave, nr in vagt.opgaver.items():
+                self.søvagt_vagtliste_var[(time, opgave)].set(str(nr))
+
+        self.table_header_var.set(
+            f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime('%Y-%m-%d')}"
+        )
+
+    def sync_havnevagt_table(self) -> None:
+        selected_vagtliste = self.registry.vagtlister[self.selected_index]
+
+        for sv in self.havnevagt_vagtliste_var.values():
+            sv.set('')
+        
+        for (tid, opgave), sv in self.havnevagt_vagtliste_var.items():
+            if opgave == Opgave.ELEV_VAGTSKIFTE:
+                sv.set(f'{selected_vagtliste.starting_shift.value}#')
+                continue
+
+            if tid not in selected_vagtliste.vagter:
+                continue
+
+            if opgave in selected_vagtliste.vagter[tid].opgaver:
+                sv.set(str(selected_vagtliste.vagter[tid].opgaver[opgave]))
+
+        self.table_header_var.set(
+            f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime('%Y-%m-%d')}"
+        )
+        return
+
+    def sync_holmen_table(self) -> None:
+        return
 
     def autofill_action(self) -> None:
         self.save_action()

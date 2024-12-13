@@ -2,9 +2,25 @@ import random
 from datetime import datetime, timedelta
 from typing import Any, Optional, cast
 
-from georgstage.model import Opgave, Vagt, VagtListe, VagtSkifte, VagtTid
+from georgstage.model import Opgave, Vagt, VagtListe, VagtSkifte, VagtTid, VagtType
 
 kabys_elev_nrs = [0, 9, 61, 62, 63]
+
+
+havne_vagt_tider = [
+    VagtTid.ALL_DAY,
+    VagtTid.T08_12,
+    VagtTid.T12_16,
+    VagtTid.T16_18,
+    VagtTid.T18_20,
+    VagtTid.T20_22,
+    VagtTid.T22_00,
+    VagtTid.T00_02,
+    VagtTid.T02_04,
+    VagtTid.T04_06,
+    VagtTid.T06_08,
+]
+
 
 def get_skifte_from_elev_nr(elev_nr: int) -> VagtSkifte:
     if elev_nr >= 1 and elev_nr <= 20:
@@ -53,17 +69,7 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
     skifte_stats = filter_by_skifte(skifte, stats)
 
     # TODO: Instead of making some numbers completely unavailable, we should just weight them so they are less likely to be picked
-    # TODO: Add pejlegast B from yesterday as unavailble number
     unavailable_numbers: list[int] = []
-
-    if not Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
-        vagt.opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
-            unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
-        )
-    unavailable_numbers.append(vagt.opgaver[Opgave.VAGTHAVENDE_ELEV])
-
-    # if nattevagt, find dagsvagter and add to unavailable_numbers
-    fysiske_vagter = [Opgave.ORDONNANS, Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER]
 
     # Subtract start_date by 1 day, match all vls, to find that day
     vl_one_day_ago: Optional[VagtListe] = None
@@ -73,6 +79,18 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
             vl_one_day_ago = _vl
         if (vl.start - timedelta(days=2)).date() == _vl.start.date():
             vl_two_days_ago = _vl
+
+    if time == VagtTid.T15_20 and vl_one_day_ago is not None and vl_one_day_ago.vagttype == VagtType.SOEVAGT and vl_one_day_ago.starting_shift == vl.starting_shift:
+        unavailable_numbers.append(vl_one_day_ago.vagter[VagtTid.T15_20].opgaver[Opgave.PEJLEGAST_B])
+
+    if not Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
+        vagt.opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
+            unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
+        )
+    unavailable_numbers.append(vagt.opgaver[Opgave.VAGTHAVENDE_ELEV])
+
+    # if nattevagt, find dagsvagter and add to unavailable_numbers
+    fysiske_vagter = [Opgave.ORDONNANS, Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER]
 
     prev_vagter: list[int] = []
     for _vl in [vl, vl_one_day_ago] if vl_one_day_ago is not None else [vl]:
@@ -93,9 +111,15 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
                     prev_vagter.append(elev_nr)
 
     for fysisk_vagt in fysiske_vagter:
+        for prev_vagt in prev_vagter:
+            if get_skifte_from_elev_nr(prev_vagt) != skifte:
+                continue
+            if (fysisk_vagt, prev_vagt) not in skifte_stats:
+                skifte_stats[(fysisk_vagt, prev_vagt)] = 1
+            skifte_stats[(fysisk_vagt, prev_vagt)] *= 10
         if not fysisk_vagt in vagt.opgaver:
             vagt.opgaver[fysisk_vagt] = pick_least(
-                [*unavailable_numbers, *prev_vagter], filter_by_opgave(fysisk_vagt, skifte_stats)
+                [*unavailable_numbers], filter_by_opgave(fysisk_vagt, skifte_stats)
             )
         unavailable_numbers.append(vagt.opgaver[fysisk_vagt])
 
@@ -121,14 +145,16 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
     if time == VagtTid.T15_20:
         # If vl one days ago is None or the shift for that time is not the same, create 2 random numbers
         def create_2_pejlegasts() -> None:
-            vagt.opgaver[Opgave.PEJLEGAST_A] = pick_least(
-                unavailable_numbers, filter_by_opgave(Opgave.PEJLEGAST_A, skifte_stats)
-            )
+            if not Opgave.PEJLEGAST_A in vagt.opgaver:
+                vagt.opgaver[Opgave.PEJLEGAST_A] = pick_least(
+                    unavailable_numbers, filter_by_opgave(Opgave.PEJLEGAST_A, skifte_stats)
+                )
             unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_A])
 
-            vagt.opgaver[Opgave.PEJLEGAST_B] = pick_least(
-                unavailable_numbers, filter_by_opgave(Opgave.PEJLEGAST_B, skifte_stats)
-            )
+            if not Opgave.PEJLEGAST_B in vagt.opgaver:
+                vagt.opgaver[Opgave.PEJLEGAST_B] = pick_least(
+                    unavailable_numbers, filter_by_opgave(Opgave.PEJLEGAST_B, skifte_stats)
+                )
             unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_B])
 
         if vl_one_day_ago is not None:
@@ -137,9 +163,10 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
             if time in vl_one_day_ago.vagter and Opgave.PEJLEGAST_B in vl_one_day_ago.vagter[time].opgaver:
                 vagt.opgaver[Opgave.PEJLEGAST_A] = vl_one_day_ago.vagter[time].opgaver[Opgave.PEJLEGAST_B]
                 unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_A])
-                vagt.opgaver[Opgave.PEJLEGAST_B] = pick_least(
-                    unavailable_numbers, filter_by_opgave(Opgave.PEJLEGAST_B, skifte_stats)
-                )
+                if not Opgave.PEJLEGAST_B in vagt.opgaver:
+                    vagt.opgaver[Opgave.PEJLEGAST_B] = pick_least(
+                        unavailable_numbers, filter_by_opgave(Opgave.PEJLEGAST_B, skifte_stats)
+                    )
                 unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_B])
             else:
                 create_2_pejlegasts()
@@ -194,7 +221,7 @@ def pick_least(unavailable_numbers: list[int], stats: dict[tuple[Opgave, int], i
 def count_vagt_stats(all_vls: list[VagtListe]) -> dict[tuple[Opgave, int], int]:
     vagt_stats: dict[tuple[Opgave, int], int] = {}
 
-    for i in range(1,64):
+    for i in range(1, 64):
         if i in kabys_elev_nrs:
             continue
 
@@ -220,8 +247,7 @@ def søvagt_skifte_for_vagttid(begyndende_skifte: VagtSkifte, vagttid: VagtTid) 
     return skifter[vagttid]
 
 
-def autofill_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
-    # TODO: Make this dependant on the vagttype
+def autofill_søvagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
     vagttider: list[VagtTid] = generate_vagttider(vl.start, vl.end)
 
     for vagttid in vagttider:
@@ -230,16 +256,57 @@ def autofill_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]
     return None
 
 
-# autofill_vagtliste(dummy_vls[0], dummy_vls)
+def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
+    stats = count_vagt_stats(all_vls)
+    skifte_stats = filter_by_skifte(vl.starting_shift, stats)
+    vl.vagter[VagtTid.ALL_DAY] = Vagt(vl.starting_shift, {})
 
-# for each vagttid
-#   Check vagttid is within bounds
-#   for each opgave
-#       Vagthavende elev -> Take a random person from a team among those in the team who has been vagthavende elev the least
-#       Fysisk vagt ->
-#           Filter eligble: already assigned, specific skifte, sidste dagsvagt/nattevagt
-#           Pick random least chosen number
-#       MOB trainee ->
-#           Filter eligble: already assigned, specific skifte
-#           Pick random least chosen number
-#
+    unavailable_numbers: list[int] = []
+
+    # Pick vagthavende elev
+    vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
+        unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
+    )
+    unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV])
+    
+    # Pick dækselev
+    vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
+        unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
+    )
+    unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS])
+
+
+    # Pick landgangsvagter
+    for tid in havne_vagt_tider:
+        if tid == VagtTid.ALL_DAY:
+            continue
+
+        vl.vagter[tid] = Vagt(vl.starting_shift, {})
+        vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A] = pick_least(
+            unavailable_numbers, filter_by_opgave(Opgave.LANDGANGSVAGT_A, skifte_stats)
+        )
+        skifte_stats[(Opgave.LANDGANGSVAGT_A, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])] += 2
+        skifte_stats[(Opgave.LANDGANGSVAGT_B, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])] += 2
+
+        vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B] = pick_least(
+            [vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A], *unavailable_numbers], filter_by_opgave(Opgave.LANDGANGSVAGT_B, skifte_stats)
+        )
+        skifte_stats[(Opgave.LANDGANGSVAGT_A, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])] += 2
+        skifte_stats[(Opgave.LANDGANGSVAGT_B, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])] += 2
+
+    return None
+
+
+def autofill_holmen_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
+    return None
+
+
+def autofill_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
+    if vl.vagttype == VagtType.SOEVAGT:
+        return autofill_søvagt_vagtliste(vl, all_vls)
+    if vl.vagttype == VagtType.HAVNEVAGT:
+        return autofill_havnevagt_vagtliste(vl, all_vls)
+    if vl.vagttype == VagtType.HOLMEN:
+        return autofill_holmen_vagtliste(vl, all_vls)
+    return 'Unknown vagttype'
+
