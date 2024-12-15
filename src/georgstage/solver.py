@@ -301,11 +301,14 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Opt
 
     # Pick landgangsvagter
     havne_vagt_tider = generate_havnevagt_vagttider(vl.start, vl.end)
+    scratch_solve = True
     for tid in havne_vagt_tider:
         if tid == VagtTid.ALL_DAY:
             continue
 
         vl.vagter[tid] = Vagt(vl.starting_shift, {}) if tid not in vl.vagter else vl.vagter[tid]
+        if scratch_solve and vl.vagter[tid].opgaver != {}:
+            scratch_solve = False
 
         if not Opgave.LANDGANGSVAGT_A in vl.vagter[tid].opgaver:
             vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A] = pick_least(
@@ -321,6 +324,26 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Opt
             )
         skifte_stats[(Opgave.LANDGANGSVAGT_A, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])] += 2
         skifte_stats[(Opgave.LANDGANGSVAGT_B, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])] += 2
+
+    # HAHAHA nr. 53
+    if scratch_solve:
+        time_53, opg_53 = None, None
+
+        for tid, vagt in vl.vagter.items():
+            if Opgave.LANDGANGSVAGT_A in vagt.opgaver and vagt.opgaver[Opgave.LANDGANGSVAGT_A] == 53:
+                time_53, opg_53 = tid, Opgave.LANDGANGSVAGT_A
+                break
+            if Opgave.LANDGANGSVAGT_B in vagt.opgaver and vagt.opgaver[Opgave.LANDGANGSVAGT_B] == 53:
+                time_53, opg_53 = tid, Opgave.LANDGANGSVAGT_B
+                break
+        
+        if time_53 is not None and time_53 != VagtTid.T06_08 and opg_53 is not None:
+            vagt = random.choice([Opgave.LANDGANGSVAGT_A, Opgave.LANDGANGSVAGT_B])
+            vl.vagter[time_53].opgaver[opg_53], vl.vagter[VagtTid.T04_06].opgaver[vagt] = (
+                vl.vagter[VagtTid.T04_06].opgaver[vagt],
+                vl.vagter[time_53].opgaver[opg_53],
+            )
+
 
     return None
 
