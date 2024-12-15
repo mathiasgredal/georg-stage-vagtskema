@@ -8,7 +8,6 @@ from georgstage.tabs.vagtliste import VagtListeTab
 from georgstage.tabs.vagtperioder import VagtPeriodeTab
 from georgstage.registry import Registry
 from tkinter.filedialog import askopenfilename, asksaveasfilename
-from typing import Any, IO
 from tkinter import messagebox as mb
 from pathlib import Path
 from hashlib import sha256
