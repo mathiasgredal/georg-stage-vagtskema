@@ -232,6 +232,7 @@ class VagtListeTab(ttk.Frame):
             self.save_havnevagt()
         elif self.registry.vagtlister[self.selected_index].vagttype == VagtType.HOLMEN:
             self.save_holmen()
+        self.registry.notify_update_listeners()
 
     def sync_list(self) -> None:
         # Update the listbox
@@ -367,7 +368,7 @@ class VagtListeTab(ttk.Frame):
 
     def autofill_action(self) -> None:
         self.save_action()
-        autofill_vagtliste(self.registry.vagtlister[self.selected_index], self.registry.vagtlister)
+        autofill_vagtliste(self.registry.vagtlister[self.selected_index], self.registry)
         self.sync_list()
 
     def clear_all(self) -> None:

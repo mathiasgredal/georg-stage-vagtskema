@@ -1,7 +1,8 @@
 from tkinter import ttk
 import tkinter as tk
 from georgstage.registry import Registry
-from georgstage.model import Afmønstring
+from georgstage.model import Afmønstring, VagtTid, Opgave
+from georgstage.solver import autofill_vagtliste
 from uuid import uuid4, UUID
 from datetime import date, timedelta
 
@@ -12,6 +13,7 @@ class AfmønstringTab(ttk.Frame):
         self.registry.register_update_listener(self.on_update)
 
         self.selected_afmønstring_id: UUID | None = None
+        self.can_update_vls = False
 
         # State variables
         self.afmønstring_list_var = tk.Variable()
@@ -48,6 +50,7 @@ class AfmønstringTab(ttk.Frame):
         self.add_btn = ttk.Button(self.btn_row, text='Tilføj...', command=self.add_item)
         self.remove_btn = ttk.Button(self.btn_row, text='Fjern', command=self.remove_item)
         self.save_btn = ttk.Button(self.btn_row, text='Gem', default='active', command=self.save_action)
+        self.update_vls_btn = ttk.Button(self.btn_row, text='Opdater vagtlister...', command=self.update_vls)
 
         self.help_label = ttk.Label(
             self.afmønstring_no_selection,
@@ -121,6 +124,19 @@ class AfmønstringTab(ttk.Frame):
         self.start_date_var.set(selected_afmønstring.start_date.strftime('%Y-%m-%d'))
         self.end_date_var.set(selected_afmønstring.end_date.strftime('%Y-%m-%d'))
         
+
+        # Check if there are any vagter with the given elev nr in the date interval
+        for vagtliste in self.registry.vagtlister:
+            for _, vagt in vagtliste.vagter.items():
+                for _, nr in vagt.opgaver.items():
+                    for afmønstring in self.registry.afmønstringer:
+                        if nr == afmønstring.elev_nr and afmønstring.start_date <= vagtliste.start.date() and vagtliste.end.date() <= afmønstring.end_date:
+                            self.can_update_vls = True
+                            break
+
+        if self.can_update_vls:
+            self.update_vls_btn.pack(side='right', padx=(0, 10))
+            self.update_vls_btn.focus_force()
     
     def save_action(self) -> None:
         """Save the form data into the registry"""
@@ -158,6 +174,29 @@ class AfmønstringTab(ttk.Frame):
         self.sync_list()
         self.sync_form()
 
+    def update_vls(self) -> None:
+        # Remove all opgaver with the given elev nr in the date interval
+        for afmønstring in self.registry.afmønstringer:
+            for vagtliste in self.registry.vagtlister:
+                if not (afmønstring.start_date <= vagtliste.start.date() and vagtliste.end.date() <= afmønstring.end_date):
+                    continue
+                
+                to_remove: list[tuple[VagtTid, Opgave]] = []
+                for tid, vagt in vagtliste.vagter.items():
+                    for opg, nr in vagt.opgaver.items():
+                        if nr != afmønstring.elev_nr:
+                            continue
+                        to_remove.append((tid, opg))
+                
+                for tid, opg in to_remove:
+                    del vagtliste.vagter[tid].opgaver[opg]
+                
+                autofill_vagtliste(vagtliste, self.registry)
+        self.registry.notify_update_listeners()
+        self.can_update_vls = False
+        self.update_vls_btn.pack_forget()
+
+
     def on_update(self) -> None:
         self.sync_list()
         self.sync_form()
@@ -167,3 +206,4 @@ class AfmønstringTab(ttk.Frame):
             if afmønstring.id == id:
                 return i
         return None
+    

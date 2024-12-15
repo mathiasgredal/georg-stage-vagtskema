@@ -25,7 +25,7 @@ class Registry(BaseModel):
         self.vagtperioder.append(vagtperiode)
         new_vl_stubs = vagtperiode.get_vagtliste_stubs()
         for new_vl in new_vl_stubs:
-            error = autofill_vagtliste(new_vl, self.vagtlister)
+            error = autofill_vagtliste(new_vl, self)
             if error is not None:
                 print(error)
             self.vagtlister.append(new_vl)
@@ -71,7 +71,7 @@ class Registry(BaseModel):
                     break
             if vl_already_exists:
                 continue
-            error = autofill_vagtliste(new_vl, self.vagtlister)
+            error = autofill_vagtliste(new_vl, self)
             if error is not None:
                 print(error)
             self.vagtlister.append(new_vl)

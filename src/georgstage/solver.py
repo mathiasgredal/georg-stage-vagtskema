@@ -1,7 +1,9 @@
 import random
 from datetime import datetime, timedelta
 from typing import Any, Optional, cast
-
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from georgstage.registry import Registry
 from georgstage.model import Opgave, Vagt, VagtListe, VagtSkifte, VagtTid, VagtType
 
 kabys_elev_nrs = [0, 9, 61, 62, 63]
@@ -83,17 +85,22 @@ def generate_havnevagt_vagttider(start: datetime, end: datetime) -> list[VagtTid
     return filtered_vagttider
 
 
-def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: list[VagtListe]) -> Vagt:
+def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'Registry') -> Vagt:
     vagt = Vagt(skifte, {}) if time not in vl.vagter else vl.vagter[time]
-    stats = count_vagt_stats(all_vls)
+    stats = count_vagt_stats(registry.vagtlister)
     skifte_stats = filter_by_skifte(skifte, stats)
 
     unavailable_numbers: list[int] = []
 
+    # Add afmønstringer to unavailable numbers
+    for afmønstring in registry.afmønstringer:
+        if afmønstring.start_date <= vl.start.date() and afmønstring.end_date >= vl.end.date():
+            unavailable_numbers.append(afmønstring.elev_nr)
+
     # Subtract start_date by 1 day, match all vls, to find that day
     vl_one_day_ago: Optional[VagtListe] = None
     vl_two_days_ago: Optional[VagtListe] = None
-    for _vl in all_vls:
+    for _vl in registry.vagtlister:
         if (vl.start - timedelta(days=1)).date() == _vl.start.date():
             vl_one_day_ago = _vl
         if (vl.start - timedelta(days=2)).date() == _vl.start.date():
@@ -269,23 +276,28 @@ def søvagt_skifte_for_vagttid(begyndende_skifte: VagtSkifte, vagttid: VagtTid) 
     return skifter[vagttid]
 
 
-def autofill_søvagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
+def autofill_søvagt_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
     vagttider: list[VagtTid] = generate_søvagt_vagttider(vl.start, vl.end)
 
     for vagttid in vagttider:
         skifte = søvagt_skifte_for_vagttid(vl.starting_shift, vagttid)
-        vl.vagter[vagttid] = autofill_vagt(skifte, vagttid, vl, all_vls)
+        vl.vagter[vagttid] = autofill_vagt(skifte, vagttid, vl, registry)
     return None
 
 
-def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
-    stats = count_vagt_stats(all_vls)
+def autofill_havnevagt_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
+    stats = count_vagt_stats(registry.vagtlister)
     skifte_stats = filter_by_skifte(vl.starting_shift, stats)
     vl.vagter[VagtTid.ALL_DAY] = (
         Vagt(vl.starting_shift, {}) if VagtTid.ALL_DAY not in vl.vagter else vl.vagter[VagtTid.ALL_DAY]
     )
 
     unavailable_numbers: list[int] = []
+
+    # Add afmønstringer to unavailable numbers
+    for afmønstring in registry.afmønstringer:
+        if afmønstring.start <= vl.start.date() and afmønstring.end >= vl.end.date():
+            unavailable_numbers.append(afmønstring.elev_nr)
 
     # Pick vagthavende elev
     if not Opgave.VAGTHAVENDE_ELEV in vl.vagter[VagtTid.ALL_DAY].opgaver:
@@ -349,15 +361,15 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Opt
     return None
 
 
-def autofill_holmen_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
+def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
     return None
 
 
-def autofill_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
+def autofill_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
     if vl.vagttype == VagtType.SOEVAGT:
-        return autofill_søvagt_vagtliste(vl, all_vls)
+        return autofill_søvagt_vagtliste(vl, registry)
     if vl.vagttype == VagtType.HAVNEVAGT:
-        return autofill_havnevagt_vagtliste(vl, all_vls)
+        return autofill_havnevagt_vagtliste(vl, registry)
     if vl.vagttype == VagtType.HOLMEN:
-        return autofill_holmen_vagtliste(vl, all_vls)
+        return autofill_holmen_vagtliste(vl, registry)
     return 'Unknown vagttype'
