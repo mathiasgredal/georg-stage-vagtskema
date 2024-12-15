@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from enum import Enum, unique
 
 from pydantic.dataclasses import dataclass
@@ -142,3 +142,15 @@ class VagtPeriode:
             return result
         else:
             raise ValueError(f'Unimplemented VagtType: {self.vagttype}')
+
+
+@dataclass
+class Afmønstring:
+    id: UUID
+    elev_nr: int
+    name: str
+    start_date: date
+    end_date: date
+
+    def to_string(self) -> str:
+        return f"{self.name}[nr. {self.elev_nr}]:  {self.start_date.strftime('%Y-%m-%d')} - {self.end_date.strftime('%Y-%m-%d')}"

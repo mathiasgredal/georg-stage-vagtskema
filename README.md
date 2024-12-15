@@ -174,14 +174,12 @@ FIXED:
 - Weighted selection of vagter
 
 BUGS:
-- Partial overlapping vagtlists
 - Validation should check for invalid numbers, hvis afmønstret, numre uden for skifte
 
 MUST:
-- Save and load to file
 - Afmønstringer
 - Markering af ude numre f.eks. HU, Syg
-- Havnevagt og holmen
+- Holmen
 - Print til pdf
 
 - EASTER EGG: Play 6 bakke lyd når man trykker på 6. bakke

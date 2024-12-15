@@ -19,7 +19,7 @@ class VagtPeriodeTab(ttk.Frame):
         self.note_var = tk.StringVar()
 
         self.vagtperioder_listbox = tk.Listbox(
-            self, listvariable=self.vagtperioder_var, height=15, selectmode=tk.SINGLE
+            self, listvariable=self.vagtperioder_var, height=15, selectmode=tk.SINGLE, exportselection=False
         )
         self.vagtperioder_listbox.bind('<<ListboxSelect>>', self.on_select_period)
 
@@ -90,8 +90,8 @@ class VagtPeriodeTab(ttk.Frame):
         self.send_btn.grid(column=1, row=1, sticky=tk.E)
         self.add_remove_frame.grid(column=0, row=1, pady=(5, 0), sticky='we')
 
-        self.add.grid(column=0, row=1, sticky=(tk.W))
-        self.remove.grid(column=1, row=1, sticky=(tk.W), padx=10)
+        self.add.grid(column=0, row=1, sticky=(tk.W), pady=(0, 5))
+        self.remove.grid(column=1, row=1, sticky=(tk.W), padx=10, pady=(0, 5))
 
         # Make the listbox column expand
         self.grid_columnconfigure(0, weight=2)

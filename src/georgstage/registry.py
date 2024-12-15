@@ -1,7 +1,7 @@
 """This module contains the registry, responsible for loading and storing data"""
 
 from pydantic import BaseModel, Field
-from georgstage.model import VagtListe, VagtPeriode, VagtSkifte, VagtType
+from georgstage.model import VagtListe, VagtPeriode, VagtSkifte, VagtType, Afmønstring
 from georgstage.solver import autofill_vagtliste
 from uuid import UUID
 
@@ -11,6 +11,7 @@ class Registry(BaseModel):
 
     vagtperioder: list[VagtPeriode] = []
     vagtlister: list[VagtListe] = []
+    afmønstringer: list[Afmønstring] = []
     event_listeners: list = Field([], exclude=True)
 
     def get_vagtperiode_by_id(self, id: UUID) -> VagtPeriode | None:
@@ -65,11 +66,7 @@ class Registry(BaseModel):
         for new_vl in new_vl_stubs:
             vl_already_exists = False
             for vl in self.vagtlister:
-                if (
-                    vl.vagttype == new_vl.vagttype
-                    and vl.start == new_vl.start
-                    and vl.end == new_vl.end
-                ):
+                if vl.vagttype == new_vl.vagttype and vl.start == new_vl.start and vl.end == new_vl.end:
                     vl_already_exists = True
                     break
             if vl_already_exists:
@@ -87,6 +84,12 @@ class Registry(BaseModel):
         self.vagtlister = [vl for vl in self.vagtlister if vl.vagtperiode_id != vagtperiode.id]
 
         self.notify_update_listeners()
+
+    def get_afmønstring_by_id(self, id: UUID) -> Afmønstring | None:
+        for afmønstring in self.afmønstringer:
+            if afmønstring.id == id:
+                return afmønstring
+        return None
 
     def register_update_listener(self, listener) -> None:
         self.event_listeners.append(listener)

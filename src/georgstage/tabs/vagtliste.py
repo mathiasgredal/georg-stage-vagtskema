@@ -49,6 +49,7 @@ class VagtListeTab(ttk.Frame):
         self.autofill_btn.grid(column=1, row=0, padx=10)
         self.clear_btn.grid(column=0, row=0)
         self.action_btns.grid(column=0, row=1, columnspan=3, sticky=tk.E, pady=5)
+        self.søvagt_table_frame.grid(column=2, row=0, sticky='nsew')
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)

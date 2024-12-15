@@ -281,7 +281,9 @@ def autofill_søvagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optio
 def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
     stats = count_vagt_stats(all_vls)
     skifte_stats = filter_by_skifte(vl.starting_shift, stats)
-    vl.vagter[VagtTid.ALL_DAY] = Vagt(vl.starting_shift, {}) if VagtTid.ALL_DAY not in vl.vagter else vl.vagter[VagtTid.ALL_DAY]
+    vl.vagter[VagtTid.ALL_DAY] = (
+        Vagt(vl.starting_shift, {}) if VagtTid.ALL_DAY not in vl.vagter else vl.vagter[VagtTid.ALL_DAY]
+    )
 
     unavailable_numbers: list[int] = []
 
@@ -336,14 +338,13 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Opt
             if Opgave.LANDGANGSVAGT_B in vagt.opgaver and vagt.opgaver[Opgave.LANDGANGSVAGT_B] == 53:
                 time_53, opg_53 = tid, Opgave.LANDGANGSVAGT_B
                 break
-        
-        if time_53 is not None and time_53 != VagtTid.T06_08 and opg_53 is not None:
+
+        if time_53 is not None and time_53 != VagtTid.T04_06 and opg_53 is not None and VagtTid.T04_06 in vl.vagter:
             vagt = random.choice([Opgave.LANDGANGSVAGT_A, Opgave.LANDGANGSVAGT_B])
             vl.vagter[time_53].opgaver[opg_53], vl.vagter[VagtTid.T04_06].opgaver[vagt] = (
                 vl.vagter[VagtTid.T04_06].opgaver[vagt],
                 vl.vagter[time_53].opgaver[opg_53],
             )
-
 
     return None
 

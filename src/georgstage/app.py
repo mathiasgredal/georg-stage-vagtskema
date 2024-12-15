@@ -6,6 +6,7 @@ from georgstage.tabs.export import ExportTab
 from georgstage.tabs.statistik import StatistikTab
 from georgstage.tabs.vagtliste import VagtListeTab
 from georgstage.tabs.vagtperioder import VagtPeriodeTab
+from georgstage.tabs.afmønstringer import AfmønstringTab
 from georgstage.registry import Registry
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox as mb
@@ -51,7 +52,7 @@ class App:
         self.tabs = {
             'Vagtperioder': VagtPeriodeTab(tabControl, self.registry),
             'Vagtliste': VagtListeTab(tabControl, self.registry),
-            # 'Afmønstringer': StatistikTab(tabControl),
+            'Afmønstringer': AfmønstringTab(tabControl, self.registry),
             'Statistik': StatistikTab(tabControl, self.registry),
             'Eksport': ExportTab(tabControl),
         }
@@ -59,6 +60,7 @@ class App:
         for key, value in self.tabs.items():
             tabControl.add(value, text=key)
 
+        tabControl.select(2)
         tabControl.pack(padx=0, pady=(0, 0), expand=1, fill='both')
         tabControl.bind(
             '<<NotebookTabChanged>>', lambda _: list(self.tabs.values())[tabControl.index('current')].focus_set()
@@ -86,6 +88,7 @@ class App:
                 new_registry = Registry.model_validate_json(self.file_path.read_text())
                 self.registry.vagtlister = new_registry.vagtlister
                 self.registry.vagtperioder = new_registry.vagtperioder
+                self.registry.afmønstringer = new_registry.afmønstringer
                 self.registry.notify_update_listeners()
                 self.set_window_title()
                 self.root.focus_force()
