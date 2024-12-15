@@ -115,15 +115,21 @@ class VagtPeriode:
             vagtliste_dates.append((current, next))
             current = next
 
-        if vagtliste_dates[-1][1] != self.end:
+        if len(vagtliste_dates) == 0:
+            # The period is less than a day, so we only have one vagtliste
+            vagtliste_dates.append((self.start, self.end))
+        elif vagtliste_dates[-1][1] != self.end:
+            # The last vagtliste is not a full day, we change the end time to the end of the period
             vagtliste_dates.append((vagtliste_dates[-1][1], self.end))
 
         if self.vagttype == VagtType.SOEVAGT:
+            # Each day has the same starting shift
             return [
                 VagtListe(uuid4(), self.id, self.vagttype, date[0], date[1], self.note, self.starting_shift, {})
                 for date in vagtliste_dates
             ]
         elif self.vagttype == VagtType.HAVNEVAGT:
+            # Each day has a different starting shift, rotating through the shifts
             current_shift = self.starting_shift.value
             result = []
             for date in vagtliste_dates:
@@ -136,35 +142,3 @@ class VagtPeriode:
             return result
         else:
             raise ValueError(f'Unimplemented VagtType: {self.vagttype}')
-
-
-# Registry
-# Attributes:
-#   - Vagtperioder
-#   - Vagtliste
-
-# Vagtperiode:
-# Attributes:
-#   - Type
-#   - Start
-#   - End
-#   - Shift
-# Functions:
-#   - getVagtlisteDates() -> list[date, type]
-
-# Vagtliste:
-# Attributes:
-#   -
-
-# Enlistments:
-# Attributes:
-#   - Vagt
-#   - Opgave
-#   - Tid
-# Functions:
-#   - GetTraineeNumber() -> int
-
-
-# Flows
-# - Create a VagtPeriode
-# - Create a set of VagtListe from a VagtPeriode

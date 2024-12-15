@@ -7,21 +7,6 @@ from georgstage.model import Opgave, Vagt, VagtListe, VagtSkifte, VagtTid, VagtT
 kabys_elev_nrs = [0, 9, 61, 62, 63]
 
 
-havne_vagt_tider = [
-    VagtTid.ALL_DAY,
-    VagtTid.T08_12,
-    VagtTid.T12_16,
-    VagtTid.T16_18,
-    VagtTid.T18_20,
-    VagtTid.T20_22,
-    VagtTid.T22_00,
-    VagtTid.T00_02,
-    VagtTid.T02_04,
-    VagtTid.T04_06,
-    VagtTid.T06_08,
-]
-
-
 def get_skifte_from_elev_nr(elev_nr: int) -> VagtSkifte:
     if elev_nr >= 1 and elev_nr <= 20:
         return VagtSkifte.SKIFTE_1
@@ -40,7 +25,7 @@ def is_dagsvagt(vagttid: VagtTid) -> bool:
     return vagttid in [VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]
 
 
-def generate_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
+def generate_søvagt_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
     next_day = start + timedelta(days=1)
     potential_vagttider = {
         VagtTid.T08_12: (start.replace(hour=8, minute=0), start.replace(hour=12, minute=0)),
@@ -51,7 +36,42 @@ def generate_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
         VagtTid.T04_08: (next_day.replace(hour=4, minute=0), next_day.replace(hour=8, minute=0)),
     }
 
+    # Subtract 1 second from all the potential end times
+    for vagttid, (vagttid_start, vagttid_end) in potential_vagttider.items():
+        potential_vagttider[vagttid] = (vagttid_start, vagttid_end - timedelta(seconds=1))
+
     filtered_vagttider: list[VagtTid] = []
+
+    for vagttid, (vagttid_start, vagttid_end) in potential_vagttider.items():
+        if vagttid_end < start:
+            continue
+        if vagttid_start > end:
+            continue
+        filtered_vagttider.append(vagttid)
+
+    return filtered_vagttider
+
+
+def generate_havnevagt_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
+    next_day = start + timedelta(days=1)
+    potential_vagttider = {
+        VagtTid.T08_12: (start.replace(hour=8, minute=0), start.replace(hour=12, minute=0)),
+        VagtTid.T12_16: (start.replace(hour=12, minute=0), start.replace(hour=16, minute=0)),
+        VagtTid.T16_18: (start.replace(hour=16, minute=0), start.replace(hour=18, minute=0)),
+        VagtTid.T18_20: (start.replace(hour=18, minute=0), start.replace(hour=20, minute=0)),
+        VagtTid.T20_22: (start.replace(hour=20, minute=0), start.replace(hour=22, minute=0)),
+        VagtTid.T22_00: (start.replace(hour=22, minute=0), start.replace(hour=23, minute=59)),
+        VagtTid.T00_02: (next_day.replace(hour=0, minute=0), next_day.replace(hour=2, minute=0)),
+        VagtTid.T02_04: (next_day.replace(hour=2, minute=0), next_day.replace(hour=4, minute=0)),
+        VagtTid.T04_06: (next_day.replace(hour=4, minute=0), next_day.replace(hour=6, minute=0)),
+        VagtTid.T06_08: (next_day.replace(hour=6, minute=0), next_day.replace(hour=8, minute=0)),
+    }
+
+    # Subtract 1 second from all the potential end times
+    for vagttid, (vagttid_start, vagttid_end) in potential_vagttider.items():
+        potential_vagttider[vagttid] = (vagttid_start, vagttid_end - timedelta(seconds=1))
+
+    filtered_vagttider: list[VagtTid] = [VagtTid.ALL_DAY]
 
     for vagttid, (vagttid_start, vagttid_end) in potential_vagttider.items():
         if vagttid_end < start:
@@ -80,7 +100,12 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
         if (vl.start - timedelta(days=2)).date() == _vl.start.date():
             vl_two_days_ago = _vl
 
-    if time == VagtTid.T15_20 and vl_one_day_ago is not None and vl_one_day_ago.vagttype == VagtType.SOEVAGT and vl_one_day_ago.starting_shift == vl.starting_shift:
+    if (
+        time == VagtTid.T15_20
+        and vl_one_day_ago is not None
+        and vl_one_day_ago.vagttype == VagtType.SOEVAGT
+        and vl_one_day_ago.starting_shift == vl.starting_shift
+    ):
         unavailable_numbers.append(vl_one_day_ago.vagter[VagtTid.T15_20].opgaver[Opgave.PEJLEGAST_B])
 
     if not Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
@@ -118,9 +143,7 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, all_vls: lis
                 skifte_stats[(fysisk_vagt, prev_vagt)] = 1
             skifte_stats[(fysisk_vagt, prev_vagt)] *= 10
         if not fysisk_vagt in vagt.opgaver:
-            vagt.opgaver[fysisk_vagt] = pick_least(
-                [*unavailable_numbers], filter_by_opgave(fysisk_vagt, skifte_stats)
-            )
+            vagt.opgaver[fysisk_vagt] = pick_least([*unavailable_numbers], filter_by_opgave(fysisk_vagt, skifte_stats))
         unavailable_numbers.append(vagt.opgaver[fysisk_vagt])
 
     udsætningsgast_opgaver = [
@@ -248,7 +271,7 @@ def søvagt_skifte_for_vagttid(begyndende_skifte: VagtSkifte, vagttid: VagtTid) 
 
 
 def autofill_søvagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]:
-    vagttider: list[VagtTid] = generate_vagttider(vl.start, vl.end)
+    vagttider: list[VagtTid] = generate_søvagt_vagttider(vl.start, vl.end)
 
     for vagttid in vagttider:
         skifte = søvagt_skifte_for_vagttid(vl.starting_shift, vagttid)
@@ -268,15 +291,15 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Opt
         unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
     )
     unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV])
-    
+
     # Pick dækselev
     vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
         unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
     )
     unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS])
 
-
     # Pick landgangsvagter
+    havne_vagt_tider = generate_havnevagt_vagttider(vl.start, vl.end)
     for tid in havne_vagt_tider:
         if tid == VagtTid.ALL_DAY:
             continue
@@ -289,7 +312,8 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Opt
         skifte_stats[(Opgave.LANDGANGSVAGT_B, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])] += 2
 
         vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B] = pick_least(
-            [vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A], *unavailable_numbers], filter_by_opgave(Opgave.LANDGANGSVAGT_B, skifte_stats)
+            [vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A], *unavailable_numbers],
+            filter_by_opgave(Opgave.LANDGANGSVAGT_B, skifte_stats),
         )
         skifte_stats[(Opgave.LANDGANGSVAGT_A, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])] += 2
         skifte_stats[(Opgave.LANDGANGSVAGT_B, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])] += 2
@@ -309,4 +333,3 @@ def autofill_vagtliste(vl: VagtListe, all_vls: list[VagtListe]) -> Optional[str]
     if vl.vagttype == VagtType.HOLMEN:
         return autofill_holmen_vagtliste(vl, all_vls)
     return 'Unknown vagttype'
-

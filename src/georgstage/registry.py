@@ -1,11 +1,9 @@
 """This module contains the registry, responsible for loading and storing data"""
 
-from datetime import datetime
-
-from pydantic import BaseModel, Field, SkipValidation, ConfigDict
+from pydantic import BaseModel, Field
 from georgstage.model import VagtListe, VagtPeriode, VagtSkifte, VagtType
 from georgstage.solver import autofill_vagtliste
-from uuid import UUID, uuid4
+from uuid import UUID
 
 
 class Registry(BaseModel):
@@ -15,11 +13,11 @@ class Registry(BaseModel):
     vagtlister: list[VagtListe] = []
     event_listeners: list = Field([], exclude=True)
 
-    def get_vagtperiode_by_id(self, id: UUID) -> VagtPeriode:
+    def get_vagtperiode_by_id(self, id: UUID) -> VagtPeriode | None:
         for vp in self.vagtperioder:
             if vp.id == id:
                 return vp
-        raise ValueError(f'No VagtPeriode with id: {id}')
+        return None
 
     def add_vagtperiode(self, vagtperiode: VagtPeriode) -> None:
         """Add a vagtperiode to the registry"""
@@ -55,8 +53,8 @@ class Registry(BaseModel):
                 if (
                     vl.vagttype == new_vl.vagttype
                     and vl.starting_shift == new_vl.starting_shift
-                    and vl.start.date() == new_vl.start.date()
-                    and vl.end.date() == new_vl.end.date()
+                    and vl.start == new_vl.start
+                    and vl.end == new_vl.end
                 ):
                     vl_should_be_kept = True
                     break
@@ -69,8 +67,8 @@ class Registry(BaseModel):
             for vl in self.vagtlister:
                 if (
                     vl.vagttype == new_vl.vagttype
-                    and vl.start.date() == new_vl.start.date()
-                    and vl.end.date() == new_vl.end.date()
+                    and vl.start == new_vl.start
+                    and vl.end == new_vl.end
                 ):
                     vl_already_exists = True
                     break
@@ -96,27 +94,3 @@ class Registry(BaseModel):
     def notify_update_listeners(self) -> None:
         for listener in self.event_listeners:
             listener()
-
-
-if __name__ == '__main__':
-    registry = Registry()
-    registry.add_vagtperiode(
-        VagtPeriode(
-            uuid4(),
-            VagtType.SOEVAGT,
-            datetime.fromisoformat('2024-12-02 13:00'),
-            datetime.fromisoformat('2024-12-06 14:00'),
-            'Korsør-Helsinki',
-            VagtSkifte.SKIFTE_2,
-        )
-    )
-
-    # registry.add_vagtperiode(
-    #     VagtPeriode(
-    #         VagtType.HAVNEVAGT,
-    #         datetime.fromisoformat('2024-12-06 14:00'),
-    #         datetime.fromisoformat('2024-12-12 18:00'),
-    #         'Helsinki',
-    #         VagtSkifte.SKIFTE_3,
-    #     )
-    # )

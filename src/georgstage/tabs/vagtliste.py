@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from georgstage.model import Opgave, Vagt, VagtListe, VagtTid, VagtSkifte, VagtType
-from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid, havne_vagt_tider
+from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid
 from georgstage.registry import Registry
 from georgstage.util import make_cell
 from georgstage.validator import validate_vagtliste
@@ -76,6 +76,20 @@ class VagtListeTab(ttk.Frame):
     def make_havnevagt_table(self) -> ttk.Frame:
         table_frame = ttk.Frame(self)
 
+        havne_vagt_tider = [
+            VagtTid.ALL_DAY,
+            VagtTid.T08_12,
+            VagtTid.T12_16,
+            VagtTid.T16_18,
+            VagtTid.T18_20,
+            VagtTid.T20_22,
+            VagtTid.T22_00,
+            VagtTid.T00_02,
+            VagtTid.T02_04,
+            VagtTid.T04_06,
+            VagtTid.T06_08,
+        ]
+
         make_cell(table_frame, 0, 0, '', 15, True, self.table_header_var)
 
         for index, opgave in enumerate([Opgave.LANDGANGSVAGT_A, Opgave.LANDGANGSVAGT_B]):
@@ -103,15 +117,60 @@ class VagtListeTab(ttk.Frame):
 
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)] = tk.StringVar()
         make_cell(table_frame, 4, 0, 'ELEV vagtskifte', 15, False, pady=(5, 0))
-        make_cell(table_frame, 4, 1, '', 15, False, self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)], pady=(5, 0), columnspan=4, sticky='w')
+        make_cell(
+            table_frame,
+            4,
+            1,
+            '',
+            15,
+            False,
+            self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)],
+            pady=(5, 0),
+            columnspan=4,
+            sticky='w',
+        )
 
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)] = tk.StringVar()
-        make_cell(table_frame, 5, 0, 'Vagthavende ELEV', 15, False, )
-        make_cell(table_frame, 5, 1, '', 15, False, self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)], columnspan=4, sticky='w')
+        make_cell(
+            table_frame,
+            5,
+            0,
+            'Vagthavende ELEV',
+            15,
+            False,
+        )
+        make_cell(
+            table_frame,
+            5,
+            1,
+            '',
+            15,
+            False,
+            self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)],
+            columnspan=4,
+            sticky='w',
+        )
 
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)] = tk.StringVar()
-        make_cell(table_frame, 6, 0, 'Dækselev i kabys', 15, False, )
-        make_cell(table_frame, 6, 1, '', 15, False, self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)], columnspan=4, sticky='w')
+        make_cell(
+            table_frame,
+            6,
+            0,
+            'Dækselev i kabys',
+            15,
+            False,
+        )
+        make_cell(
+            table_frame,
+            6,
+            1,
+            '',
+            15,
+            False,
+            self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)],
+            columnspan=4,
+            sticky='w',
+        )
         return table_frame
 
     def make_søvagt_table(self) -> ttk.Frame:
@@ -166,35 +225,12 @@ class VagtListeTab(ttk.Frame):
         return table_frame
 
     def save_action(self) -> None:
-        return
-        for (tid, opgave), sv in self.selected_vagtliste_var.items():
-            if opgave == Opgave.ELEV_VAGTSKIFTE:
-                continue
-
-            selected_vagtliste = self.registry.vagtlister[self.selected_index]
-
-            if tid not in selected_vagtliste.vagter:
-                continue
-            unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(
-                TypeAdapter(VagtListe).dump_json(selected_vagtliste)
-            )
-            if tid not in unvalidated_vagtliste.vagter:
-                skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)
-                unvalidated_vagtliste.vagter[tid] = Vagt(skifte, {})
-            if sv.get() == '':
-                unvalidated_vagtliste.vagter[tid].opgaver.pop(opgave, None)
-            else:
-                unvalidated_vagtliste.vagter[tid].opgaver[opgave] = int(sv.get())
-
-            validation_result = validate_vagtliste(unvalidated_vagtliste)
-            if validation_result is not None:
-                mb.showerror(
-                    'Fejl',
-                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
-                )
-                return
-            else:
-                self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
+        if self.registry.vagtlister[self.selected_index].vagttype == VagtType.SOEVAGT:
+            self.save_søvagt()
+        elif self.registry.vagtlister[self.selected_index].vagttype == VagtType.HAVNEVAGT:
+            self.save_havnevagt()
+        elif self.registry.vagtlister[self.selected_index].vagttype == VagtType.HOLMEN:
+            self.save_holmen()
 
     def sync_list(self) -> None:
         # Update the listbox
@@ -248,7 +284,7 @@ class VagtListeTab(ttk.Frame):
 
         for sv in self.havnevagt_vagtliste_var.values():
             sv.set('')
-        
+
         for (tid, opgave), sv in self.havnevagt_vagtliste_var.items():
             if opgave == Opgave.ELEV_VAGTSKIFTE:
                 sv.set(f'{selected_vagtliste.starting_shift.value}#')
@@ -267,6 +303,66 @@ class VagtListeTab(ttk.Frame):
 
     def sync_holmen_table(self) -> None:
         return
+
+    def save_havnevagt(self) -> None:
+        for (tid, opgave), sv in self.havnevagt_vagtliste_var.items():
+            if opgave == Opgave.ELEV_VAGTSKIFTE:
+                continue
+
+            selected_vagtliste = self.registry.vagtlister[self.selected_index]
+
+            if tid not in selected_vagtliste.vagter:
+                continue
+            unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(
+                TypeAdapter(VagtListe).dump_json(selected_vagtliste)
+            )
+            if tid not in unvalidated_vagtliste.vagter:
+                skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)
+                unvalidated_vagtliste.vagter[tid] = Vagt(skifte, {})
+            if sv.get() == '':
+                unvalidated_vagtliste.vagter[tid].opgaver.pop(opgave, None)
+            else:
+                unvalidated_vagtliste.vagter[tid].opgaver[opgave] = int(sv.get())
+
+            validation_result = validate_vagtliste(unvalidated_vagtliste)
+            if validation_result is not None:
+                mb.showerror(
+                    'Fejl',
+                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
+                )
+                return
+            else:
+                self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
+
+    def save_søvagt(self) -> None:
+        for (tid, opgave), sv in self.søvagt_vagtliste_var.items():
+            if opgave == Opgave.ELEV_VAGTSKIFTE:
+                continue
+
+            selected_vagtliste = self.registry.vagtlister[self.selected_index]
+
+            if tid not in selected_vagtliste.vagter:
+                continue
+            unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(
+                TypeAdapter(VagtListe).dump_json(selected_vagtliste)
+            )
+            if tid not in unvalidated_vagtliste.vagter:
+                skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)
+                unvalidated_vagtliste.vagter[tid] = Vagt(skifte, {})
+            if sv.get() == '':
+                unvalidated_vagtliste.vagter[tid].opgaver.pop(opgave, None)
+            else:
+                unvalidated_vagtliste.vagter[tid].opgaver[opgave] = int(sv.get())
+
+            validation_result = validate_vagtliste(unvalidated_vagtliste)
+            if validation_result is not None:
+                mb.showerror(
+                    'Fejl',
+                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
+                )
+                return
+            else:
+                self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
     def autofill_action(self) -> None:
         self.save_action()

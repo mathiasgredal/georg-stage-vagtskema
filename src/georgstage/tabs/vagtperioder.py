@@ -104,6 +104,9 @@ class VagtPeriodeTab(ttk.Frame):
         self.sync_form()
         self.sync_list()
 
+        # Register event listeners
+        self.registry.register_update_listener(self.on_update_registry)
+
     def on_select_period(self, event: tk.Event) -> None:  # type: ignore
         w = event.widget
         if len(w.curselection()) == 0:
@@ -130,6 +133,9 @@ class VagtPeriodeTab(ttk.Frame):
             self.selected_vp_id = self.registry.vagtperioder[0].id
 
         selected_vagtperiode = self.registry.get_vagtperiode_by_id(self.selected_vp_id)
+        if selected_vagtperiode is None:
+            self.selected_vp_id = self.registry.vagtperioder[0].id
+            selected_vagtperiode = self.registry.vagtperioder[0]
         self.startdate_var.set(selected_vagtperiode.start.strftime('%Y-%m-%d %H:%M'))
         self.enddate_var.set(selected_vagtperiode.end.strftime('%Y-%m-%d %H:%M'))
         for key, value in self.vagtskifte_opts.items():
@@ -151,6 +157,7 @@ class VagtPeriodeTab(ttk.Frame):
             self.note_var.get(),
             self.vagtskifte_opts[self.selected_shift.get()],
         )
+
         self.registry.update_vagtperiode(self.selected_vp_id, new_vagtperiode)
         self.sync_list()
 
@@ -191,3 +198,7 @@ class VagtPeriodeTab(ttk.Frame):
             if vp.id == vp_id:
                 return i
         return None
+
+    def on_update_registry(self) -> None:
+        self.sync_list()
+        self.sync_form()
