@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import ttk
+from typing import Optional
 
 from georgstage.export import Exporter
 from georgstage.tabs.statistik import StatistikTab
@@ -29,7 +30,7 @@ class App:
 
         tabControl = ttk.Notebook(self.root)
         self.registry = Registry()
-        self.file_path: Path | None = None
+        self.file_path: Optional[Path] = None
         self.out_of_sync = False
         self.exporter = Exporter()
 

@@ -1,5 +1,6 @@
 """This module contains the registry, responsible for loading and storing data"""
 
+from typing import Optional
 from georgstage.model import VagtListe, VagtPeriode, Afmønstring
 from georgstage.solver import autofill_vagtliste
 from uuid import UUID
@@ -36,7 +37,7 @@ class Registry:
         """Save the registry to a file"""
         pathlib.Path(filename).write_text(self.save_to_string())
 
-    def get_vagtperiode_by_id(self, id: UUID) -> VagtPeriode | None:
+    def get_vagtperiode_by_id(self, id: UUID) -> Optional[VagtPeriode]:
         for vp in self.vagtperioder:
             if vp.id == id:
                 return vp
@@ -108,7 +109,7 @@ class Registry:
 
         self.notify_update_listeners()
 
-    def get_afmønstring_by_id(self, id: UUID) -> Afmønstring | None:
+    def get_afmønstring_by_id(self, id: UUID) -> Optional[Afmønstring]:
         for afmønstring in self.afmønstringer:
             if afmønstring.id == id:
                 return afmønstring

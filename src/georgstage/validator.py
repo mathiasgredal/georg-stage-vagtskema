@@ -1,3 +1,4 @@
+from typing import Optional
 from georgstage.model import VagtListe, VagtTid, Opgave, Vagt
 from dataclasses import dataclass
 
@@ -9,7 +10,7 @@ class VagtListConflictError:
     conflict_b: tuple[Opgave, int]
 
 
-def validate_vagt(tid: VagtTid, vagt: Vagt) -> VagtListConflictError | None:
+def validate_vagt(tid: VagtTid, vagt: Vagt) -> Optional[VagtListConflictError]:
     assigned_opgaver: list[tuple[Opgave, int]] = []
 
     for opgave, elev_nr in vagt.opgaver.items():
@@ -21,7 +22,7 @@ def validate_vagt(tid: VagtTid, vagt: Vagt) -> VagtListConflictError | None:
     return None
 
 
-def validate_vagtliste(vagtliste: VagtListe) -> VagtListConflictError | None:
+def validate_vagtliste(vagtliste: VagtListe) -> Optional[VagtListConflictError]:
     for tid, vagt in vagtliste.vagter.items():
         error = validate_vagt(tid, vagt)
         if error is not None:

@@ -3,6 +3,7 @@ import json
 import datetime
 import tkinter as tk
 import enum
+from typing import Optional
 import uuid
 
 
@@ -63,7 +64,7 @@ class EnhancedJSONDecoder(json.JSONDecoder):
 
 
 def make_cell(
-    parent: tk.Misc, row: int, col: int, text: str, width: int, readonly: bool, sv: tk.StringVar | None = None, **kw
+    parent: tk.Misc, row: int, col: int, text: str, width: int, readonly: bool, sv: Optional[tk.StringVar] = None, **kw
 ) -> None:
     entry1 = tk.Entry(
         parent,

@@ -1,5 +1,6 @@
 from tkinter import ttk
 import tkinter as tk
+from typing import Optional
 from georgstage.registry import Registry
 from georgstage.model import Afmønstring, VagtTid, Opgave
 from georgstage.solver import autofill_vagtliste
@@ -13,7 +14,7 @@ class AfmønstringTab(ttk.Frame):
         self.registry = registry
         self.registry.register_update_listener(self.on_update)
 
-        self.selected_afmønstring_id: UUID | None = None
+        self.selected_afmønstring_id: Optional[UUID] = None
         self.can_update_vls = False
 
         # State variables
@@ -209,7 +210,7 @@ class AfmønstringTab(ttk.Frame):
         self.sync_list()
         self.sync_form()
 
-    def _get_afmønstring_index(self, id: UUID) -> int | None:
+    def _get_afmønstring_index(self, id: UUID) -> Optional[int]:
         for i, afmønstring in enumerate(self.registry.afmønstringer):
             if afmønstring.id == id:
                 return i

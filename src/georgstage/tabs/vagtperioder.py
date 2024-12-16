@@ -1,6 +1,7 @@
 import tkinter as tk
 from datetime import datetime, timedelta
 from tkinter import ttk
+from typing import Optional
 
 from georgstage.model import VagtPeriode, VagtType, VagtSkifte
 from georgstage.registry import Registry
@@ -98,7 +99,7 @@ class VagtPeriodeTab(ttk.Frame):
         self.grid_rowconfigure(0, weight=1)
 
         # Select the first item
-        self.selected_vp_id: UUID | None = (
+        self.selected_vp_id: Optional[UUID] = (
             self.registry.vagtperioder[0].id if len(self.registry.vagtperioder) > 0 else None
         )
         self.sync_form()
@@ -190,7 +191,7 @@ class VagtPeriodeTab(ttk.Frame):
         self.sync_form()
         self.sync_list()
 
-    def _get_vp_index(self, vp_id: UUID | None) -> int | None:
+    def _get_vp_index(self, vp_id:Optional[ UUID]) -> Optional[int]:
         if vp_id is None:
             return None
 
