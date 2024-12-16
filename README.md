@@ -1,12 +1,6 @@
 # Georg Stage vagtplanlægger
 
-Dette er et hjælpeprogram til vagtplanlægning ombord på Georg Stage (søvagter).
-Matematikken bag programmet benytter lineær programming (LP) til at optimere vagterne,
-således at alle opgaver varetages, samtidigt med at opgaverne fordeles mellem
-gasterne så fair som muligt. Programmet er skrevet i Python 3.
-
-> Minimum Python version: 3.9
-
+Dette er et hjælpeprogram til vagtplanlægning ombord på Georg Stage.
 
 
 BUGS:

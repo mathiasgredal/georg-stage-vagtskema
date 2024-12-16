@@ -1,5 +1,5 @@
 venv:
-	rm -rf .venv
+	rm -rf venv
 	python3 -m venv venv
 	pip install -e '.[dev]'
 	echo 'venv created'
@@ -15,5 +15,5 @@ lint: venv
 .PHONY: run
 run: venv
 	@echo 'running' & \
-	venv/bin/python src/georgstage & \
+	venv/bin/python src & \
 	echo 'running done'

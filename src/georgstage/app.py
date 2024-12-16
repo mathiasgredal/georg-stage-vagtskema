@@ -107,6 +107,8 @@ class App:
 
         self.file_path = Path(asksaveasfilename(filetypes=[('Georg Stage Vagtplan', '*.json')]))
         if self.file_path is not None:
+            if not self.file_path.name.endswith('.json'):
+                self.file_path = self.file_path.with_suffix('.json')
             self.registry.save_to_file(self.file_path)
             self.set_window_title()
         else:
