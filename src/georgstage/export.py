@@ -391,7 +391,7 @@ class Exporter:
         return str(vl.vagter[tid].opgaver[opgave])
 
     def get_skifte(self, vl: VagtListe, tid: VagtTid) -> str:
-        if VagtTid.ALL_DAY in vl.vagter or tid not in vl.vagter:
+        if tid not in vl.vagter or (tid in vl.vagter and Opgave.ORDONNANS not in vl.vagter[tid].opgaver):
             return ''
         return str(søvagt_skifte_for_vagttid(vl.starting_shift, tid).value) + '#'
 
