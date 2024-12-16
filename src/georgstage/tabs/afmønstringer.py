@@ -57,7 +57,7 @@ class AfmønstringTab(ttk.Frame):
         self.help_label = ttk.Label(
             self.afmønstring_no_selection,
             text='Vælg venligst en afmønstring fra listen\n eller tilføj en ny afmønstring.',
-            font='TkDefaultFont 12 italic',
+            font='TkDefaultFont 10 italic',
             justify='center',
         )
 
@@ -161,7 +161,7 @@ class AfmønstringTab(ttk.Frame):
             Afmønstring(
                 id=uuid4(),
                 elev_nr=0,
-                name='John Doe',
+                name='<indsæt-navn>',
                 start_date=date.today(),
                 end_date=date.today() + timedelta(days=1),
             )

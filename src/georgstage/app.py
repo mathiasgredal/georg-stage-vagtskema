@@ -71,7 +71,7 @@ class App:
         )
 
         # 6. bakke REPRESENT
-        ttk.Label(self.root, text=' Made by Mathias Gredal (6. bakke!!!) ', font='TkDefaultFont 12 italic').place(
+        ttk.Label(self.root, text=' Made by Mathias Gredal (6. bakke!!!) ', font='TkDefaultFont 10 italic').place(
             relx=1, y=2.5, anchor='ne'
         )
 

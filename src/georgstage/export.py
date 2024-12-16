@@ -4,7 +4,7 @@ from georgstage.solver import søvagt_skifte_for_vagttid
 from georgstage.model import VagtTid, Opgave, VagtListe
 from tkinter import messagebox as mb
 from copy import deepcopy
-
+import tempfile
 
 class Exporter:
     def export_vls(self, input_vls: list[VagtListe]) -> None:
@@ -111,8 +111,14 @@ class Exporter:
 
 </html>
         """
-        base64_html = base64.b64encode(html_table.encode()).decode()
-        webbrowser.open(f'data:text/html;base64,{base64_html}', new=1, autoraise=True)
+
+        # We get a pathlength error on windows, so we use a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as f:
+            f.write(html_table.encode())
+            f.flush()
+            f.close()
+            print(f.name)
+            webbrowser.open(f"file://{f.name}", new=1, autoraise=True)
 
     def make_vl_fragment(self, vl: VagtListe) -> str:
         weekdays = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag']

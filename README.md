@@ -5,31 +5,8 @@ Matematikken bag programmet benytter lineær programming (LP) til at optimere va
 således at alle opgaver varetages, samtidigt med at opgaverne fordeles mellem
 gasterne så fair som muligt. Programmet er skrevet i Python 3.
 
-> Minimum Python version: 3.7
+> Minimum Python version: 3.9
 
-
-## Lokal udvikling
-
-```shell
-python3 -m venv venv
-source venv/bin/activate
-pip install -e '.[tests]'
-```
-
-Kør tests:
-
-```shell
-make lint
-make test
-```
-
-Start program:
-
-```shell
-make run_local
-# or
-python -m georgstage
-```
 
 
 BUGS:
