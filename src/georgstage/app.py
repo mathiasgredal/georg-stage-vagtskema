@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 from tkinter import ttk
 
-from georgstage.tabs.export import ExportTab
+from georgstage.export import Exporter
 from georgstage.tabs.statistik import StatistikTab
 from georgstage.tabs.vagtliste import VagtListeTab
 from georgstage.tabs.vagtperioder import VagtPeriodeTab
@@ -31,6 +31,7 @@ class App:
         self.registry = Registry()
         self.file_path: Path | None = None
         self.out_of_sync = False
+        self.exporter = Exporter()
 
         self.set_window_title()
 
@@ -39,10 +40,14 @@ class App:
         self.root.config(menu=menu)
         file_menu = tk.Menu(menu)
         menu.add_cascade(label='Filer', menu=file_menu)
-        file_menu.add_command(label='Åben vagtplan (ctrl+o)', command=self.open_file)
-        file_menu.add_command(label='Gem vagtplan (ctrl+s)', command=self.save_file)
+        file_menu.add_command(label='Åben vagtplan', command=self.open_file, accelerator='Ctrl-O')
+        file_menu.add_command(label='Gem vagtplan', command=self.save_file, accelerator='Ctrl-S')
+        file_menu.add_command(label='Print...', command=self.print_some)
+        file_menu.add_command(label='Print alle', command=self.print_all, accelerator='Ctrl-P')
         self.root.bind('<Control-o>', lambda _: self.open_file())
         self.root.bind('<Control-s>', lambda _: self.save_file())
+        self.root.bind('<Control-p>', lambda _: self.print_all())
+
         help_menu = tk.Menu(menu)
         menu.add_cascade(label='Hjælp', menu=help_menu)
         help_menu.add_command(
@@ -54,13 +59,11 @@ class App:
             'Vagtliste': VagtListeTab(tabControl, self.registry),
             'Afmønstringer': AfmønstringTab(tabControl, self.registry),
             'Statistik': StatistikTab(tabControl, self.registry),
-            'Eksport': ExportTab(tabControl),
         }
 
         for key, value in self.tabs.items():
             tabControl.add(value, text=key)
 
-        tabControl.select(2)
         tabControl.pack(padx=0, pady=(0, 0), expand=1, fill='both')
         tabControl.bind(
             '<<NotebookTabChanged>>', lambda _: list(self.tabs.values())[tabControl.index('current')].focus_set()
@@ -80,6 +83,12 @@ class App:
 
     def run(self) -> None:
         self.root.mainloop()
+
+    def print_all(self) -> None:
+        self.exporter.export_vls(self.registry.vagtlister)
+    
+    def print_some(self) -> None:
+        mb.showinfo('Print', 'Print nogle')
 
     def open_file(self) -> None:
         try:

@@ -337,34 +337,32 @@ class VagtListeTab(ttk.Frame):
                 self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
     def save_søvagt(self) -> None:
+        selected_vagtliste = self.registry.vagtlister[self.selected_index]
+        unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(
+            TypeAdapter(VagtListe).dump_json(selected_vagtliste)
+        )
+
         for (tid, opgave), sv in self.søvagt_vagtliste_var.items():
             if opgave == Opgave.ELEV_VAGTSKIFTE:
                 continue
 
-            selected_vagtliste = self.registry.vagtlister[self.selected_index]
-
             if tid not in selected_vagtliste.vagter:
                 continue
-            unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(
-                TypeAdapter(VagtListe).dump_json(selected_vagtliste)
-            )
-            if tid not in unvalidated_vagtliste.vagter:
-                skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)
-                unvalidated_vagtliste.vagter[tid] = Vagt(skifte, {})
+
             if sv.get() == '':
                 unvalidated_vagtliste.vagter[tid].opgaver.pop(opgave, None)
             else:
                 unvalidated_vagtliste.vagter[tid].opgaver[opgave] = int(sv.get())
 
-            validation_result = validate_vagtliste(unvalidated_vagtliste)
-            if validation_result is not None:
-                mb.showerror(
-                    'Fejl',
-                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
-                )
-                return
-            else:
-                self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
+        validation_result = validate_vagtliste(unvalidated_vagtliste)
+        if validation_result is not None:
+            mb.showerror(
+                'Fejl',
+                f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
+            )
+            return
+        else:
+            self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
     def autofill_action(self) -> None:
         self.save_action()

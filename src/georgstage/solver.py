@@ -96,6 +96,10 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
     for afmønstring in registry.afmønstringer:
         if afmønstring.start_date <= vl.start.date() and afmønstring.end_date >= vl.end.date():
             unavailable_numbers.append(afmønstring.elev_nr)
+    
+    # Add existing vagter to unavailable numbers
+    for _, nr in vagt.opgaver.items():
+        unavailable_numbers.append(nr)
 
     # Subtract start_date by 1 day, match all vls, to find that day
     vl_one_day_ago: Optional[VagtListe] = None
@@ -296,8 +300,12 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, registry: 'Registry') -> Optiona
 
     # Add afmønstringer to unavailable numbers
     for afmønstring in registry.afmønstringer:
-        if afmønstring.start <= vl.start.date() and afmønstring.end >= vl.end.date():
+        if afmønstring.start_date <= vl.start.date() and afmønstring.end_date >= vl.end.date():
             unavailable_numbers.append(afmønstring.elev_nr)
+
+    # Add ALL_DAY vagter to unavailable numbers
+    for _, nr in vl.vagter[VagtTid.ALL_DAY].opgaver.items():
+        unavailable_numbers.append(nr)
 
     # Pick vagthavende elev
     if not Opgave.VAGTHAVENDE_ELEV in vl.vagter[VagtTid.ALL_DAY].opgaver:
