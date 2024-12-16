@@ -1,14 +1,16 @@
 """This module contains the registry, responsible for loading and storing data"""
 
-from georgstage.model import VagtListe, VagtPeriode, VagtSkifte, VagtType, Afmønstring
+from georgstage.model import VagtListe, VagtPeriode, Afmønstring
 from georgstage.solver import autofill_vagtliste
 from uuid import UUID
 from georgstage.util import EnhancedJSONDecoder, EnhancedJSONEncoder
 import json
 import pathlib
 
+
 class Registry:
     """The registry is responsible for loading and storing data"""
+
     vagtperioder: list[VagtPeriode] = []
     vagtlister: list[VagtListe] = []
     afmønstringer: list[Afmønstring] = []
@@ -17,16 +19,16 @@ class Registry:
     def load_from_file(self, filename: str) -> None:
         """Load the registry from a file"""
         data = json.loads(pathlib.Path(filename).read_text(), cls=EnhancedJSONDecoder)
-        self.vagtperioder = [VagtPeriode(**vp) for vp in data["vagtperioder"]]
-        self.vagtlister = [VagtListe(**vl) for vl in data["vagtlister"]]
-        self.afmønstringer = [Afmønstring(**af) for af in data["afmønstringer"]]
+        self.vagtperioder = [VagtPeriode(**vp) for vp in data['vagtperioder']]
+        self.vagtlister = [VagtListe(**vl) for vl in data['vagtlister']]
+        self.afmønstringer = [Afmønstring(**af) for af in data['afmønstringer']]
         self.notify_update_listeners()
-    
+
     def save_to_string(self) -> str:
         data = {
-            "vagtperioder": self.vagtperioder,
-            "vagtlister": self.vagtlister,
-            "afmønstringer": self.afmønstringer,
+            'vagtperioder': self.vagtperioder,
+            'vagtlister': self.vagtlister,
+            'afmønstringer': self.afmønstringer,
         }
         return json.dumps(data, cls=EnhancedJSONEncoder, ensure_ascii=False, indent=4)
 

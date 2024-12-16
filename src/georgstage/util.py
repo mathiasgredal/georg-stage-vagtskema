@@ -2,10 +2,9 @@ import dataclasses
 import json
 import datetime
 import tkinter as tk
-import pathlib
 import enum
 import uuid
-from georgstage.model import VagtPeriode, VagtListe
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -18,7 +17,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         if isinstance(obj, enum.Enum):
             return obj.value
         return super().default(obj)
-    
+
     def encode(self, obj):
         return super().encode(self.valuify_dict(obj))
 
@@ -28,10 +27,10 @@ class EnhancedJSONEncoder(json.JSONEncoder):
             for field in dataclasses.fields(obj):
                 new_obj[field.name] = self.valuify_dict(obj.__dict__[field.name])
             return new_obj
-        
+
         if isinstance(obj, list):
             return [self.valuify_dict(item) for item in obj]
-        
+
         if isinstance(obj, dict):
             new_obj = {}
             for key, value in obj.items():
@@ -43,17 +42,17 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 
         return obj
 
+
 class EnhancedJSONDecoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(
-            self, object_hook=self.object_hook, *args, **kwargs)
+        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
         ret = {}
         # TODO: Move this into the post_init method of each dataclass
         for key, value in obj.items():
             if key in {'start', 'end'}:
-                ret[key] = datetime.datetime.fromisoformat(value) 
+                ret[key] = datetime.datetime.fromisoformat(value)
             elif key in {'start_date', 'end_date'}:
                 ret[key] = datetime.date.fromisoformat(value)
             elif key in {'id', 'vagtperiode_id'}:
@@ -61,6 +60,7 @@ class EnhancedJSONDecoder(json.JSONDecoder):
             else:
                 ret[key] = value
         return ret
+
 
 def make_cell(
     parent: tk.Misc, row: int, col: int, text: str, width: int, readonly: bool, sv: tk.StringVar | None = None, **kw

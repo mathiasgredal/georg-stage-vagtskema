@@ -82,7 +82,7 @@ class App:
 
     def print_all(self) -> None:
         self.exporter.export_vls(self.registry.vagtlister)
-    
+
     def print_some(self) -> None:
         mb.showinfo('Print', 'Ikke implementeret endnu, print alle i stedet')
         self.print_all()

@@ -2,6 +2,7 @@ import random
 from datetime import datetime, timedelta
 from typing import Any, Optional, cast
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from georgstage.registry import Registry
 from georgstage.model import Opgave, Vagt, VagtListe, VagtSkifte, VagtTid, VagtType
@@ -55,7 +56,7 @@ def generate_søvagt_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
 
 
 def generate_havnevagt_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
-    next_day = (start + timedelta(days=1) )if start.hour >= 8 else start
+    next_day = (start + timedelta(days=1)) if start.hour >= 8 else start
     potential_vagttider = {
         VagtTid.T08_12: (start.replace(hour=8, minute=1), start.replace(hour=12, minute=0)),
         VagtTid.T12_16: (start.replace(hour=12, minute=0), start.replace(hour=16, minute=0)),
@@ -96,7 +97,7 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
     for afmønstring in registry.afmønstringer:
         if afmønstring.start_date <= vl.start.date() and afmønstring.end_date >= vl.end.date():
             unavailable_numbers.append(afmønstring.elev_nr)
-    
+
     # Add existing vagter to unavailable numbers
     for _, nr in vagt.opgaver.items():
         unavailable_numbers.append(nr)

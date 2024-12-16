@@ -1,13 +1,14 @@
 import tkinter as tk
 from tkinter import ttk
 
-from georgstage.model import Opgave, Vagt, VagtListe, VagtTid, VagtSkifte, VagtType
+from georgstage.model import Opgave, Vagt, VagtTid, VagtType
 from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid
 from georgstage.registry import Registry
 from georgstage.util import make_cell
 from georgstage.validator import validate_vagtliste
 from tkinter import messagebox as mb
 from copy import deepcopy
+
 
 class VagtListeTab(ttk.Frame):
     def __init__(self, parent: tk.Misc, registry: Registry) -> None:
@@ -316,7 +317,7 @@ class VagtListeTab(ttk.Frame):
 
             if tid not in selected_vagtliste.vagter:
                 continue
-            
+
             unvalidated_vagtliste = deepcopy(selected_vagtliste)
             if tid not in unvalidated_vagtliste.vagter:
                 skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)

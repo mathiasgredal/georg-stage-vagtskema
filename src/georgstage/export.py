@@ -1,19 +1,15 @@
-from tkinter import ttk
-import tkinter as tk
 import webbrowser
 import base64
-from georgstage.registry import Registry
 from georgstage.solver import søvagt_skifte_for_vagttid
-from georgstage.model import VagtPeriode, VagtType, VagtSkifte, VagtTid, Opgave, VagtListe
-from datetime import datetime, timedelta
-from uuid import uuid4
+from georgstage.model import VagtTid, Opgave, VagtListe
 from tkinter import messagebox as mb
 from copy import deepcopy
+
+
 class Exporter:
     def export_vls(self, input_vls: list[VagtListe]) -> None:
-        
         if len(input_vls) == 0:
-            mb.showerror("Fejl", "Ingen vagtlisteer at eksportere")
+            mb.showerror('Fejl', 'Ingen vagtlisteer at eksportere')
             return
         input_vls = deepcopy(input_vls)
 
@@ -27,8 +23,6 @@ class Exporter:
                 vls.append(current_vl)
                 current_vl = next_vl
         vls.append(current_vl)
-        
-
 
         html_table = f"""
 <!DOCTYPE html>
@@ -118,7 +112,7 @@ class Exporter:
 </html>
         """
         base64_html = base64.b64encode(html_table.encode()).decode()
-        webbrowser.open(f"data:text/html;base64,{base64_html}", new=1, autoraise=True)
+        webbrowser.open(f'data:text/html;base64,{base64_html}', new=1, autoraise=True)
 
     def make_vl_fragment(self, vl: VagtListe) -> str:
         weekdays = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag']
@@ -386,45 +380,27 @@ class Exporter:
 
     def get_nr(self, vl: VagtListe, tid: VagtTid, opgave: Opgave) -> str:
         if tid not in vl.vagter:
-            return ""
+            return ''
         if opgave not in vl.vagter[tid].opgaver:
-            return ""
+            return ''
         return str(vl.vagter[tid].opgaver[opgave])
 
     def get_skifte(self, vl: VagtListe, tid: VagtTid) -> str:
         if VagtTid.ALL_DAY in vl.vagter or tid not in vl.vagter:
-            return ""
-        return str(søvagt_skifte_for_vagttid(vl.starting_shift, tid).value) + "#"
+            return ''
+        return str(søvagt_skifte_for_vagttid(vl.starting_shift, tid).value) + '#'
 
     def get_pejlegast(self, vl: VagtListe, tid: VagtTid) -> str:
         if tid not in vl.vagter:
-            return ""
+            return ''
         if Opgave.PEJLEGAST_A in vl.vagter[tid].opgaver and Opgave.PEJLEGAST_B in vl.vagter[tid].opgaver:
-            return str(vl.vagter[tid].opgaver[Opgave.PEJLEGAST_A]) + " / " + str(vl.vagter[tid].opgaver[Opgave.PEJLEGAST_B])
+            return (
+                str(vl.vagter[tid].opgaver[Opgave.PEJLEGAST_A])
+                + ' / '
+                + str(vl.vagter[tid].opgaver[Opgave.PEJLEGAST_B])
+            )
         elif Opgave.PEJLEGAST_A in vl.vagter[tid].opgaver:
             return str(vl.vagter[tid].opgaver[Opgave.PEJLEGAST_A])
         elif Opgave.PEJLEGAST_B in vl.vagter[tid].opgaver:
             return str(vl.vagter[tid].opgaver[Opgave.PEJLEGAST_B])
-        return ""
-
-if __name__ == '__main__':
-    root = tk.Tk()
-    registry = Registry()
-    registry.add_vagtperiode(VagtPeriode(
-        id=uuid4(),
-        vagttype=VagtType.SOEVAGT,
-        start=datetime.now()+timedelta(hours=8),
-        end=datetime.now() + timedelta(days=2),
-        starting_shift=VagtSkifte.SKIFTE_1,
-        note='Test note'
-    ))
-    registry.add_vagtperiode(VagtPeriode(
-        id=uuid4(),
-        vagttype=VagtType.HAVNEVAGT,
-        start=datetime.now()+timedelta(days=2, hours=8),
-        end=datetime.now() + timedelta(days=4),
-        starting_shift=VagtSkifte.SKIFTE_1,
-        note='Test note'
-    ))
-    export = ExportTab(root, registry)
-    export.export_all_vls()
+        return ''

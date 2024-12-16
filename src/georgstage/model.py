@@ -91,7 +91,7 @@ class VagtListe:
     def __post_init__(self):
         if isinstance(self.vagttype, str):
             self.vagttype = VagtType(self.vagttype)
-        
+
         if isinstance(self.starting_shift, int):
             self.starting_shift = VagtSkifte(self.starting_shift)
 
@@ -102,7 +102,7 @@ class VagtListe:
                 continue
             self.vagter[tid] = Vagt(
                 VagtSkifte(vagt['vagt_skifte']),
-                {Opgave(opgave): elev_nr for opgave, elev_nr in vagt['opgaver'].items()}
+                {Opgave(opgave): elev_nr for opgave, elev_nr in vagt['opgaver'].items()},
             )
 
     def get_date(self) -> date:
@@ -127,7 +127,7 @@ class VagtPeriode:
     def __post_init__(self):
         if isinstance(self.vagttype, str):
             self.vagttype = VagtType(self.vagttype)
-        
+
         if isinstance(self.starting_shift, int):
             self.starting_shift = VagtSkifte(self.starting_shift)
 
