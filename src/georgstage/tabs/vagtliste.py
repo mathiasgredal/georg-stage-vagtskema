@@ -316,9 +316,8 @@ class VagtListeTab(ttk.Frame):
 
             if tid not in selected_vagtliste.vagter:
                 continue
-            unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(
-                TypeAdapter(VagtListe).dump_json(selected_vagtliste)
-            )
+            
+            unvalidated_vagtliste = deepcopy(selected_vagtliste)
             if tid not in unvalidated_vagtliste.vagter:
                 skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)
                 unvalidated_vagtliste.vagter[tid] = Vagt(skifte, {})

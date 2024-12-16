@@ -50,6 +50,7 @@ class EnhancedJSONDecoder(json.JSONDecoder):
 
     def object_hook(self, obj):
         ret = {}
+        # TODO: Move this into the post_init method of each dataclass
         for key, value in obj.items():
             if key in {'start', 'end'}:
                 ret[key] = datetime.datetime.fromisoformat(value) 
@@ -77,11 +78,3 @@ def make_cell(
         entry1.configure(state='disabled')
         entry1.configure(disabledbackground='white', disabledforeground='black')
     entry1.grid(row=row, column=col + 2, **kw)
-
-
-if __name__ == "__main__":
-    target = pathlib.Path("/Users/mathiasgredal/Desktop/vagtplan.json").read_text()
-    data = json.loads(target, cls=EnhancedJSONDecoder)
-    vl = VagtListe(**data["vagtlister"][0])
-    print(vl)
-    # print(json.dumps(vl, cls=EnhancedJSONEncoder, indent=4))
