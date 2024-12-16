@@ -72,6 +72,98 @@ class VagtListeTab(ttk.Frame):
 
     def make_holmen_table(self) -> ttk.Frame:
         table_frame = ttk.Frame(self)
+        
+        holmen_vagt_tider = [
+            VagtTid.ALL_DAY,
+            VagtTid.T22_00,
+            VagtTid.T00_02,
+            VagtTid.T02_04,
+            VagtTid.T04_06,
+            VagtTid.T06_08,
+        ]
+
+        
+        make_cell(table_frame, 0, 0, '', 15, True, self.table_header_var)
+
+        make_cell(table_frame, 1, 0, Opgave.NATTEVAGT.value, 15, True)
+
+        for index, time in enumerate(holmen_vagt_tider):
+            if time == VagtTid.ALL_DAY:
+                continue
+            make_cell(table_frame, 0, index + 1, time.value, 5, True)
+
+        for col, time in enumerate(holmen_vagt_tider):
+            if time == VagtTid.ALL_DAY:
+                continue
+            for row, opgave in enumerate([Opgave.NATTEVAGT]):
+                self.holmen_vagtliste_var[(time, opgave)] = tk.StringVar()
+                make_cell(
+                    table_frame,
+                    row + 1,
+                    col + 1,
+                    '',
+                    5,
+                    False,
+                    self.holmen_vagtliste_var[(time, opgave)],
+                )
+
+        self.holmen_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)] = tk.StringVar()
+        make_cell(table_frame, 4, 0, 'ELEV vagtskifte', 15, False, pady=(5, 0))
+        make_cell(
+            table_frame,
+            4,
+            1,
+            '',
+            15,
+            False,
+            self.holmen_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)],
+            pady=(5, 0),
+            columnspan=4,
+            sticky='w',
+        )
+
+        self.holmen_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)] = tk.StringVar()
+        make_cell(
+            table_frame,
+            5,
+            0,
+            'Vagthavende ELEV',
+            15,
+            False,
+        )
+        make_cell(
+            table_frame,
+            5,
+            1,
+            '',
+            15,
+            False,
+            self.holmen_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)],
+            columnspan=4,
+            sticky='w',
+        )
+
+        self.holmen_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)] = tk.StringVar()
+        make_cell(
+            table_frame,
+            6,
+            0,
+            'Dækselev i kabys',
+            15,
+            False,
+        )
+        make_cell(
+            table_frame,
+            6,
+            1,
+            '',
+            15,
+            False,
+            self.holmen_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)],
+            columnspan=4,
+            sticky='w',
+        )
+
         return table_frame
 
     def make_havnevagt_table(self) -> ttk.Frame:
@@ -306,7 +398,54 @@ class VagtListeTab(ttk.Frame):
         return
 
     def sync_holmen_table(self) -> None:
+        selected_vagtliste = self.registry.vagtlister[self.selected_index]
+        for sv in self.holmen_vagtliste_var.values():
+            sv.set('')
+
+        for (tid, opgave), sv in self.holmen_vagtliste_var.items():
+            if opgave == Opgave.ELEV_VAGTSKIFTE:
+                sv.set(f'{selected_vagtliste.starting_shift.value}#')
+                continue
+
+            if tid not in selected_vagtliste.vagter:
+                continue
+
+            if opgave in selected_vagtliste.vagter[tid].opgaver:
+                sv.set(str(selected_vagtliste.vagter[tid].opgaver[opgave]))
+
+        self.table_header_var.set(
+            f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime('%Y-%m-%d')}"
+        )
         return
+
+    def save_holmen(self) -> None:
+        for (tid, opgave), sv in self.holmen_vagtliste_var.items():
+            if opgave == Opgave.ELEV_VAGTSKIFTE:
+                continue
+
+            selected_vagtliste = self.registry.vagtlister[self.selected_index]
+
+            if tid not in selected_vagtliste.vagter:
+                continue
+
+            unvalidated_vagtliste = deepcopy(selected_vagtliste)
+            if tid not in unvalidated_vagtliste.vagter:
+                unvalidated_vagtliste.vagter[tid] = Vagt(unvalidated_vagtliste.starting_shift, {})
+            if sv.get() == '':
+                unvalidated_vagtliste.vagter[tid].opgaver.pop(opgave, None)
+            else:
+                unvalidated_vagtliste.vagter[tid].opgaver[opgave] = int(sv.get())
+
+            validation_result = validate_vagtliste(unvalidated_vagtliste)
+            if validation_result is not None:
+                mb.showerror(
+                    'Fejl',
+                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
+                )
+                return
+            else:
+                self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
+
 
     def save_havnevagt(self) -> None:
         for (tid, opgave), sv in self.havnevagt_vagtliste_var.items():
@@ -320,8 +459,7 @@ class VagtListeTab(ttk.Frame):
 
             unvalidated_vagtliste = deepcopy(selected_vagtliste)
             if tid not in unvalidated_vagtliste.vagter:
-                skifte = søvagt_skifte_for_vagttid(unvalidated_vagtliste.starting_shift, tid)
-                unvalidated_vagtliste.vagter[tid] = Vagt(skifte, {})
+                unvalidated_vagtliste.vagter[tid] = Vagt(unvalidated_vagtliste.starting_shift, {})
             if sv.get() == '':
                 unvalidated_vagtliste.vagter[tid].opgaver.pop(opgave, None)
             else:

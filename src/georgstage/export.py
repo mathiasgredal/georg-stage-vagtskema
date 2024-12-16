@@ -117,7 +117,6 @@ class Exporter:
             f.write(html_table.encode())
             f.flush()
             f.close()
-            print(f.name)
             webbrowser.open(f"file://{f.name}", new=1, autoraise=True)
 
     def make_vl_fragment(self, vl: VagtListe) -> str:
@@ -205,12 +204,12 @@ class Exporter:
           <td>{self.get_nr(vl, VagtTid.T12_16, Opgave.LANDGANGSVAGT_A)}</td>
           <td>{self.get_nr(vl, VagtTid.T16_18, Opgave.LANDGANGSVAGT_A)}</td>
           <td>{self.get_nr(vl, VagtTid.T18_20, Opgave.LANDGANGSVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_A)}</td>
+          <td>{self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T20_22, Opgave.NATTEVAGT)}</td>
+          <td>{self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T22_00, Opgave.NATTEVAGT)}</td>
+          <td>{self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T00_02, Opgave.NATTEVAGT)}</td>
+          <td>{self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T02_04, Opgave.NATTEVAGT)}</td>
+          <td>{self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T04_06, Opgave.NATTEVAGT)}</td>
+          <td>{self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T06_08, Opgave.NATTEVAGT)}</td>
         </tr>
         <tr>
           <td class="tg-label">Udkig / Landgangsvagt</td>

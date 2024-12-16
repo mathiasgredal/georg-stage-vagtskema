@@ -29,7 +29,7 @@ class Opgave(Enum):
     DAEKSELEV_I_KABYS = 'Dækselev i kabys'
     LANDGANGSVAGT_A = 'Landgangsvagt A'
     LANDGANGSVAGT_B = 'Landgangsvagt B'
-    NATTEVAGT = 'NATTEVAGT'
+    NATTEVAGT = 'Nattevagt'
     ELEV_VAGTSKIFTE = 'ELEV Vagtskifte'
 
 
@@ -155,7 +155,7 @@ class VagtPeriode:
                 VagtListe(uuid4(), self.id, self.vagttype, date[0], date[1], self.note, self.starting_shift, {})
                 for date in vagtliste_dates
             ]
-        elif self.vagttype == VagtType.HAVNEVAGT:
+        elif self.vagttype == VagtType.HAVNEVAGT or self.vagttype == VagtType.HOLMEN:
             # Each day has a different starting shift, rotating through the shifts
             current_shift = self.starting_shift.value
             result = []

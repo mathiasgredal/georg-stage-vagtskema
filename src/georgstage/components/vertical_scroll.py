@@ -53,14 +53,10 @@ class VerticalScrolledFrame(ttk.Frame):
             def _unbind_from_mousewheel(event):
                 canvas.unbind_all('<MouseWheel>')
         elif platform == 'win32':
-
             def _on_mousewheel(event):
-                print(event.delta)
                 canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
-
             def _bind_to_mousewheel(event):
                 canvas.bind_all('<MouseWheel>', _on_mousewheel)
-
             def _unbind_from_mousewheel(event):
                 canvas.unbind_all('<MouseWheel>')
 

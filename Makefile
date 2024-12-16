@@ -1,7 +1,7 @@
 venv:
 	rm -rf venv
 	python3 -m venv venv
-	pip install -e '.[dev]'
+	venv/bin/pip install -e '.[dev]'
 	echo 'venv created'
 
 .PHONY: lint

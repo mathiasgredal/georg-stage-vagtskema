@@ -85,6 +85,30 @@ def generate_havnevagt_vagttider(start: datetime, end: datetime) -> list[VagtTid
 
     return filtered_vagttider
 
+def generate_holmen_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
+    next_day = (start + timedelta(days=1)) if start.hour >= 8 else start
+    potential_vagttider = {
+        VagtTid.T22_00: (start.replace(hour=22, minute=0), start.replace(hour=23, minute=59)),
+        VagtTid.T00_02: (next_day.replace(hour=0, minute=0), next_day.replace(hour=2, minute=0)),
+        VagtTid.T02_04: (next_day.replace(hour=2, minute=0), next_day.replace(hour=4, minute=0)),
+        VagtTid.T04_06: (next_day.replace(hour=4, minute=0), next_day.replace(hour=6, minute=0)),
+        VagtTid.T06_08: (next_day.replace(hour=6, minute=0), next_day.replace(hour=8, minute=0)),
+    }
+
+    # Subtract 1 second from all the potential end times
+    for vagttid, (vagttid_start, vagttid_end) in potential_vagttider.items():
+        potential_vagttider[vagttid] = (vagttid_start, vagttid_end - timedelta(seconds=1))
+
+    filtered_vagttider: list[VagtTid] = [VagtTid.ALL_DAY]
+
+    for vagttid, (vagttid_start, vagttid_end) in potential_vagttider.items():
+        if vagttid_end < start:
+            continue
+        if vagttid_start > end:
+            continue
+        filtered_vagttider.append(vagttid)
+
+    return filtered_vagttider
 
 def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'Registry') -> Vagt:
     vagt = Vagt(skifte, {}) if time not in vl.vagter else vl.vagter[time]
@@ -373,6 +397,69 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, registry: 'Registry') -> Optiona
 
 
 def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
+    stats = count_vagt_stats(registry.vagtlister)
+    skifte_stats = filter_by_skifte(vl.starting_shift, stats)
+    vl.vagter[VagtTid.ALL_DAY] = (
+        Vagt(vl.starting_shift, {}) if VagtTid.ALL_DAY not in vl.vagter else vl.vagter[VagtTid.ALL_DAY]
+    )
+
+    unavailable_numbers: list[int] = []
+
+    # Add afmønstringer to unavailable numbers
+    for afmønstring in registry.afmønstringer:
+        if afmønstring.start_date <= vl.start.date() and afmønstring.end_date >= vl.end.date():
+            unavailable_numbers.append(afmønstring.elev_nr)
+
+    # Add ALL_DAY vagter to unavailable numbers
+    for _, nr in vl.vagter[VagtTid.ALL_DAY].opgaver.items():
+        unavailable_numbers.append(nr)
+
+    # Pick vagthavende elev
+    if not Opgave.VAGTHAVENDE_ELEV in vl.vagter[VagtTid.ALL_DAY].opgaver:
+        vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
+            unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
+        )
+    unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV])
+
+    # Pick dækselev
+    if not Opgave.DAEKSELEV_I_KABYS in vl.vagter[VagtTid.ALL_DAY].opgaver:
+        vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
+            unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
+        )
+    unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS])
+
+    # Pick landgangsvagter
+    holmen_vagt_tider = generate_holmen_vagttider(vl.start, vl.end)
+    scratch_solve = True
+    for tid in holmen_vagt_tider:
+        if tid == VagtTid.ALL_DAY:
+            continue
+
+        vl.vagter[tid] = Vagt(vl.starting_shift, {}) if tid not in vl.vagter else vl.vagter[tid]
+        if scratch_solve and vl.vagter[tid].opgaver != {}:
+            scratch_solve = False
+
+        if not Opgave.NATTEVAGT in vl.vagter[tid].opgaver:
+            vl.vagter[tid].opgaver[Opgave.NATTEVAGT] = pick_least(
+                unavailable_numbers, filter_by_opgave(Opgave.NATTEVAGT, skifte_stats)
+            )
+        skifte_stats[(Opgave.NATTEVAGT, vl.vagter[tid].opgaver[Opgave.NATTEVAGT])] += 10
+
+    # HAHAHA nr. 53
+    if scratch_solve:
+        time_53, opg_53 = None, None
+
+        for tid, vagt in vl.vagter.items():
+            if Opgave.NATTEVAGT in vagt.opgaver and vagt.opgaver[Opgave.NATTEVAGT] == 53:
+                time_53, opg_53 = tid, Opgave.NATTEVAGT
+                break
+
+        if time_53 is not None and time_53 != VagtTid.T04_06 and opg_53 is not None and VagtTid.T04_06 in vl.vagter:
+            vl.vagter[time_53].opgaver[opg_53], vl.vagter[VagtTid.T04_06].opgaver[Opgave.NATTEVAGT] = (
+                vl.vagter[VagtTid.T04_06].opgaver[Opgave.NATTEVAGT],
+                vl.vagter[time_53].opgaver[opg_53],
+            )
+
     return None
 
 
