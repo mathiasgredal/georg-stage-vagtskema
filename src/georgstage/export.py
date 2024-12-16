@@ -7,15 +7,20 @@ from georgstage.solver import søvagt_skifte_for_vagttid
 from georgstage.model import VagtPeriode, VagtType, VagtSkifte, VagtTid, Opgave, VagtListe
 from datetime import datetime, timedelta
 from uuid import uuid4
-
+from tkinter import messagebox as mb
+from copy import deepcopy
 class Exporter:
     def export_vls(self, input_vls: list[VagtListe]) -> None:
+        
+        if len(input_vls) == 0:
+            mb.showerror("Fejl", "Ingen vagtlisteer at eksportere")
+            return
+        input_vls = deepcopy(input_vls)
 
-        # We want to join the vagtlister that are adjacent and have different vagttype
         vls = []
         current_vl = input_vls[0]
         for next_vl in input_vls[1:]:
-            if current_vl.start.date() == next_vl.start.date() and current_vl.vagttype != next_vl.vagttype:
+            if current_vl.get_date() == next_vl.get_date() and current_vl.vagttype != next_vl.vagttype:
                 current_vl.vagter.update(next_vl.vagter)
                 current_vl.end = next_vl.end
             else:
@@ -118,7 +123,7 @@ class Exporter:
     def make_vl_fragment(self, vl: VagtListe) -> str:
         weekdays = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag']
         return f"""
-    <h2>Vagtskema: Fra {weekdays[vl.start.weekday()]} d. {vl.start.strftime('%d/%m')} til {weekdays[vl.end.weekday()]} d. {vl.end.strftime('%d/%m')}</h2>
+    <h2>Vagtskema: Fra {weekdays[vl.get_date().weekday()]} d. {vl.get_date().strftime('%d/%m')} til {weekdays[vl.end.weekday()]} d. {vl.end.strftime('%d/%m')}</h2>
     <table style="table-layout: fixed; width: 574px; border: 2px solid black">
       <colgroup>
         <col style="width: 150px">

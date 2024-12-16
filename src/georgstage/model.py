@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, date
 from enum import Enum, unique
 
-from pydantic.dataclasses import dataclass
+from dataclasses import dataclass
 from uuid import UUID, uuid4
 
 
@@ -88,11 +88,31 @@ class VagtListe:
     starting_shift: VagtSkifte
     vagter: dict[VagtTid, Vagt]
 
+    def __post_init__(self):
+        if isinstance(self.vagttype, str):
+            self.vagttype = VagtType(self.vagttype)
+        
+        if isinstance(self.starting_shift, int):
+            self.starting_shift = VagtSkifte(self.starting_shift)
+
+        self.vagter = {(VagtTid(key) if isinstance(key, str) else key): value for key, value in self.vagter.items()}
+
+        for tid, vagt in self.vagter.items():
+            if isinstance(vagt, Vagt):
+                continue
+            self.vagter[tid] = Vagt(
+                VagtSkifte(vagt['vagt_skifte']),
+                {Opgave(opgave): elev_nr for opgave, elev_nr in vagt['opgaver'].items()}
+            )
+
+    def get_date(self) -> date:
+        return self.start.date() if self.start.hour >= 8 else (self.start - timedelta(days=1)).date()
+
     def to_string(self) -> str:
         if self.vagttype == VagtType.SOEVAGT:
-            return f"{self.vagttype.value}: {self.start.strftime('%Y-%m-%d')}"
+            return f"{self.vagttype.value}: {self.get_date().strftime('%Y-%m-%d')}"
         else:
-            return f"{self.vagttype.value}[{self.starting_shift.value}#]: {self.start.strftime('%Y-%m-%d')}"
+            return f"{self.vagttype.value}[{self.starting_shift.value}#]:  {self.get_date().strftime('%Y-%m-%d')}"
 
 
 @dataclass
@@ -103,6 +123,13 @@ class VagtPeriode:
     end: datetime
     note: str
     starting_shift: VagtSkifte
+
+    def __post_init__(self):
+        if isinstance(self.vagttype, str):
+            self.vagttype = VagtType(self.vagttype)
+        
+        if isinstance(self.starting_shift, int):
+            self.starting_shift = VagtSkifte(self.starting_shift)
 
     def to_string(self) -> str:
         return f"{self.vagttype.value}: {self.start.strftime('%Y-%m-%d %H:%M')} - {self.end.strftime('%Y-%m-%d %H:%M')} [{self.starting_shift.value}#] ({self.note})"

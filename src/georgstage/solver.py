@@ -28,9 +28,9 @@ def is_dagsvagt(vagttid: VagtTid) -> bool:
 
 
 def generate_søvagt_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
-    next_day = start + timedelta(days=1)
+    next_day = (start + timedelta(days=1)) if start.hour >= 8 else start
     potential_vagttider = {
-        VagtTid.T08_12: (start.replace(hour=8, minute=0), start.replace(hour=12, minute=0)),
+        VagtTid.T08_12: (start.replace(hour=8, minute=1), start.replace(hour=12, minute=0)),
         VagtTid.T12_15: (start.replace(hour=12, minute=0), start.replace(hour=15, minute=0)),
         VagtTid.T15_20: (start.replace(hour=15, minute=0), start.replace(hour=20, minute=0)),
         VagtTid.T20_24: (start.replace(hour=20, minute=0), start.replace(hour=23, minute=59)),
@@ -55,9 +55,9 @@ def generate_søvagt_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
 
 
 def generate_havnevagt_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
-    next_day = start + timedelta(days=1)
+    next_day = (start + timedelta(days=1) )if start.hour >= 8 else start
     potential_vagttider = {
-        VagtTid.T08_12: (start.replace(hour=8, minute=0), start.replace(hour=12, minute=0)),
+        VagtTid.T08_12: (start.replace(hour=8, minute=1), start.replace(hour=12, minute=0)),
         VagtTid.T12_16: (start.replace(hour=12, minute=0), start.replace(hour=16, minute=0)),
         VagtTid.T16_18: (start.replace(hour=16, minute=0), start.replace(hour=18, minute=0)),
         VagtTid.T18_20: (start.replace(hour=18, minute=0), start.replace(hour=20, minute=0)),
@@ -115,6 +115,8 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
         and vl_one_day_ago is not None
         and vl_one_day_ago.vagttype == VagtType.SOEVAGT
         and vl_one_day_ago.starting_shift == vl.starting_shift
+        and VagtTid.T15_20 in vl_one_day_ago.vagter
+        and Opgave.PEJLEGAST_B in vl_one_day_ago.vagter[VagtTid.T15_20].opgaver
     ):
         unavailable_numbers.append(vl_one_day_ago.vagter[VagtTid.T15_20].opgaver[Opgave.PEJLEGAST_B])
 

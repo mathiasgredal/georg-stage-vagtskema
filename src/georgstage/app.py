@@ -40,7 +40,7 @@ class App:
         self.root.config(menu=menu)
         file_menu = tk.Menu(menu)
         menu.add_cascade(label='Filer', menu=file_menu)
-        file_menu.add_command(label='Åben vagtplan', command=self.open_file, accelerator='Ctrl-O')
+        file_menu.add_command(label='Åben vagtplan...', command=self.open_file, accelerator='Ctrl-O')
         file_menu.add_command(label='Gem vagtplan', command=self.save_file, accelerator='Ctrl-S')
         file_menu.add_command(label='Print...', command=self.print_some)
         file_menu.add_command(label='Print alle', command=self.print_all, accelerator='Ctrl-P')
@@ -69,10 +69,6 @@ class App:
             '<<NotebookTabChanged>>', lambda _: list(self.tabs.values())[tabControl.index('current')].focus_set()
         )
 
-        # TODO: Add opened file name to window title and a label if there is no opened file
-        # TODO: Periodic check if the internal state has changed and show a * in the window title
-        # TODO: Shortcuts to save and open files
-
         # 6. bakke REPRESENT
         ttk.Label(self.root, text=' Made by Mathias Gredal (6. bakke!!!) ', font='TkDefaultFont 12 italic').place(
             relx=1, y=2.5, anchor='ne'
@@ -88,17 +84,14 @@ class App:
         self.exporter.export_vls(self.registry.vagtlister)
     
     def print_some(self) -> None:
-        mb.showinfo('Print', 'Print nogle')
+        mb.showinfo('Print', 'Ikke implementeret endnu, print alle i stedet')
+        self.print_all()
 
     def open_file(self) -> None:
         try:
             self.file_path = Path(askopenfilename(filetypes=[('Georg Stage Vagtplan', '*.json')]))
             if self.file_path is not None:
-                new_registry = Registry.model_validate_json(self.file_path.read_text())
-                self.registry.vagtlister = new_registry.vagtlister
-                self.registry.vagtperioder = new_registry.vagtperioder
-                self.registry.afmønstringer = new_registry.afmønstringer
-                self.registry.notify_update_listeners()
+                self.registry.load_from_file(self.file_path)
                 self.set_window_title()
                 self.root.focus_force()
             else:
@@ -108,12 +101,12 @@ class App:
 
     def save_file(self) -> None:
         if self.file_path is not None:
-            self.file_path.write_text(self.registry.model_dump_json())
+            self.registry.save_to_file(self.file_path)
             return
 
         self.file_path = Path(asksaveasfilename(filetypes=[('Georg Stage Vagtplan', '*.json')]))
         if self.file_path is not None:
-            self.file_path.write_text(self.registry.model_dump_json())
+            self.registry.save_to_file(self.file_path)
             self.set_window_title()
         else:
             mb.showerror('Fejl', 'Filen blev ikke gemt')
@@ -121,7 +114,7 @@ class App:
     def check_sync(self) -> None:
         if self.file_path is not None:
             on_disk_registry = self.file_path.read_text()
-            in_memory_registry = self.registry.model_dump_json()
+            in_memory_registry = self.registry.save_to_string()
             if sha256(on_disk_registry.encode()).hexdigest() == sha256(in_memory_registry.encode()).hexdigest():
                 self.out_of_sync = False
             else:

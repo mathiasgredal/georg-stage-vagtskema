@@ -1,18 +1,38 @@
 """This module contains the registry, responsible for loading and storing data"""
 
-from pydantic import BaseModel, Field
 from georgstage.model import VagtListe, VagtPeriode, VagtSkifte, VagtType, Afmønstring
 from georgstage.solver import autofill_vagtliste
 from uuid import UUID
+from georgstage.util import EnhancedJSONDecoder, EnhancedJSONEncoder
+import json
+import pathlib
 
-
-class Registry(BaseModel):
+class Registry:
     """The registry is responsible for loading and storing data"""
-
     vagtperioder: list[VagtPeriode] = []
     vagtlister: list[VagtListe] = []
     afmønstringer: list[Afmønstring] = []
-    event_listeners: list = Field([], exclude=True)
+    event_listeners: list[callable] = []
+
+    def load_from_file(self, filename: str) -> None:
+        """Load the registry from a file"""
+        data = json.loads(pathlib.Path(filename).read_text(), cls=EnhancedJSONDecoder)
+        self.vagtperioder = [VagtPeriode(**vp) for vp in data["vagtperioder"]]
+        self.vagtlister = [VagtListe(**vl) for vl in data["vagtlister"]]
+        self.afmønstringer = [Afmønstring(**af) for af in data["afmønstringer"]]
+        self.notify_update_listeners()
+    
+    def save_to_string(self) -> str:
+        data = {
+            "vagtperioder": self.vagtperioder,
+            "vagtlister": self.vagtlister,
+            "afmønstringer": self.afmønstringer,
+        }
+        return json.dumps(data, cls=EnhancedJSONEncoder, ensure_ascii=False, indent=4)
+
+    def save_to_file(self, filename: str) -> None:
+        """Save the registry to a file"""
+        pathlib.Path(filename).write_text(self.save_to_string())
 
     def get_vagtperiode_by_id(self, id: UUID) -> VagtPeriode | None:
         for vp in self.vagtperioder:
@@ -29,6 +49,7 @@ class Registry(BaseModel):
             if error is not None:
                 print(error)
             self.vagtlister.append(new_vl)
+        self.vagtlister.sort(key=lambda vl: vl.start)
         self.notify_update_listeners()
 
     def update_vagtperiode(self, id: UUID, vagtperiode: VagtPeriode) -> None:
@@ -75,7 +96,7 @@ class Registry(BaseModel):
             if error is not None:
                 print(error)
             self.vagtlister.append(new_vl)
-
+        self.vagtlister.sort(key=lambda vl: vl.start)
         self.notify_update_listeners()
 
     def remove_vagtperiode(self, vagtperiode: VagtPeriode) -> None:

@@ -170,11 +170,12 @@ Der findes også ankervagter, men det kører en smule anderledes.
 BUGS:
 - Validation should check for invalid numbers, hvis afmønstret, numre uden for skifte
 - If there is a time interval that requires the previous days vagtliste e.g. 02:00 - 12:00, then it breaks
+- There can be duplicate landgangsvagter
 
 MUST:
 - Markering af ude numre f.eks. HU, Syg
 - Holmen
-- Print til pdf
+- Print til pdf med dato-interval
 - Remove pydantic
 - EASTER EGG: Play 6 bakke lyd når man trykker på 6. bakke
 

@@ -6,9 +6,8 @@ from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid
 from georgstage.registry import Registry
 from georgstage.util import make_cell
 from georgstage.validator import validate_vagtliste
-from pydantic import TypeAdapter
 from tkinter import messagebox as mb
-
+from copy import deepcopy
 
 class VagtListeTab(ttk.Frame):
     def __init__(self, parent: tk.Misc, registry: Registry) -> None:
@@ -272,8 +271,10 @@ class VagtListeTab(ttk.Frame):
             sv.set('')
 
         selected_vagtliste = self.registry.vagtlister[self.selected_index]
+
         for time, vagt in selected_vagtliste.vagter.items():
-            self.søvagt_vagtliste_var[(time, Opgave.ELEV_VAGTSKIFTE)].set(f'{vagt.vagt_skifte.value}#')
+            if (time, Opgave.ELEV_VAGTSKIFTE) in self.søvagt_vagtliste_var:
+                self.søvagt_vagtliste_var[(time, Opgave.ELEV_VAGTSKIFTE)].set(f'{vagt.vagt_skifte.value}#')
             for opgave, nr in vagt.opgaver.items():
                 self.søvagt_vagtliste_var[(time, opgave)].set(str(nr))
 
@@ -338,9 +339,7 @@ class VagtListeTab(ttk.Frame):
 
     def save_søvagt(self) -> None:
         selected_vagtliste = self.registry.vagtlister[self.selected_index]
-        unvalidated_vagtliste = TypeAdapter(VagtListe).validate_json(
-            TypeAdapter(VagtListe).dump_json(selected_vagtliste)
-        )
+        unvalidated_vagtliste = deepcopy(selected_vagtliste)
 
         for (tid, opgave), sv in self.søvagt_vagtliste_var.items():
             if opgave == Opgave.ELEV_VAGTSKIFTE:

@@ -1,5 +1,5 @@
 from georgstage.model import VagtListe, VagtTid, Opgave, Vagt
-from pydantic.dataclasses import dataclass
+from dataclasses import dataclass
 
 
 @dataclass
