@@ -37,6 +37,10 @@ class VagtListeTab(ttk.Frame):
         self.autofill_btn = ttk.Button(self.action_btns, text='Auto-Udfyld', command=self.autofill_action)
         self.clear_btn = ttk.Button(self.action_btns, text='Ryd', command=self.clear_all)
 
+        self.ude_label = ttk.Label(self.action_btns, text='Ude: ')
+        self.ude_var = tk.StringVar()
+        self.ude_entry = ttk.Entry(self.action_btns, textvariable=self.ude_var)
+
         self.søvagt_table_frame = self.make_søvagt_table()
         self.havnevagt_table_frame = self.make_havnevagt_table()
         self.holmen_table_frame = self.make_holmen_table()
@@ -45,10 +49,13 @@ class VagtListeTab(ttk.Frame):
         self.vagtliste_listbox.grid(column=0, row=0, rowspan=2, sticky='nsew')
         self.vert_sep.grid(column=1, row=0, rowspan=2, sticky='ns', padx=10)
 
-        self.save_btn.grid(column=2, row=0)
-        self.autofill_btn.grid(column=1, row=0, padx=10)
-        self.clear_btn.grid(column=0, row=0)
-        self.action_btns.grid(column=0, row=1, columnspan=3, sticky=tk.E, pady=5)
+        self.ude_label.pack(side='left', padx=5)
+        self.ude_entry.pack(side='left', padx=(5, 30))
+
+        self.save_btn.pack(side='right', padx=(5, 0))
+        self.autofill_btn.pack(side='right', padx=5)
+        self.clear_btn.pack(side='right', padx=5)
+        self.action_btns.grid(column=2, row=1, sticky="ew", pady=5)
         self.søvagt_table_frame.grid(column=2, row=0, sticky='nsew')
 
         self.grid_columnconfigure(0, weight=1)
@@ -502,8 +509,14 @@ class VagtListeTab(ttk.Frame):
             self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
     def autofill_action(self) -> None:
+        # Parse the comma separated list of elev nrs in ude_var
+        try:
+            ude_nrs = [int(nr) for nr in self.ude_var.get().split(',') if nr != '']
+        except:
+            mb.showerror('Fejl', 'Ude elev numre skal være kommasepareret, f.eks. 12, 43')
+            return
         self.save_action()
-        autofill_vagtliste(self.registry.vagtlister[self.selected_index], self.registry)
+        autofill_vagtliste(self.registry.vagtlister[self.selected_index], self.registry, ude_nrs)
         self.sync_list()
 
     def clear_all(self) -> None:

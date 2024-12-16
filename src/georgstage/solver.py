@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from georgstage.registry import Registry
 from georgstage.model import Opgave, Vagt, VagtListe, VagtSkifte, VagtTid, VagtType
+from tkinter import messagebox as mb
 
 kabys_elev_nrs = [0, 9, 61, 62, 63]
 
@@ -110,12 +111,12 @@ def generate_holmen_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
 
     return filtered_vagttider
 
-def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'Registry') -> Vagt:
+def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'Registry', ude_nr: list[int]) -> Vagt:
     vagt = Vagt(skifte, {}) if time not in vl.vagter else vl.vagter[time]
     stats = count_vagt_stats(registry.vagtlister)
     skifte_stats = filter_by_skifte(skifte, stats)
 
-    unavailable_numbers: list[int] = []
+    unavailable_numbers: list[int] = [*ude_nr]
 
     # Add afmønstringer to unavailable numbers
     for afmønstring in registry.afmønstringer:
@@ -270,6 +271,7 @@ def pick_least(unavailable_numbers: list[int], stats: dict[tuple[Opgave, int], i
 
     elev_nr_and_count.sort(key=lambda tup: tup[1])
     if len(elev_nr_and_count) == 0:
+        mb.showerror('Error', 'Could not autogenerate vagtliste, no elev_nrs available')
         print(f'Could not find an available number, given these reserved numbers: {unavailable_numbers}')
         print(f'The associated stats: {stats}')
     least_count = elev_nr_and_count[0][1]
@@ -307,23 +309,23 @@ def søvagt_skifte_for_vagttid(begyndende_skifte: VagtSkifte, vagttid: VagtTid) 
     return skifter[vagttid]
 
 
-def autofill_søvagt_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
+def autofill_søvagt_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[int]) -> Optional[str]:
     vagttider: list[VagtTid] = generate_søvagt_vagttider(vl.start, vl.end)
 
     for vagttid in vagttider:
         skifte = søvagt_skifte_for_vagttid(vl.starting_shift, vagttid)
-        vl.vagter[vagttid] = autofill_vagt(skifte, vagttid, vl, registry)
+        vl.vagter[vagttid] = autofill_vagt(skifte, vagttid, vl, registry, ude_nr)
     return None
 
 
-def autofill_havnevagt_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
+def autofill_havnevagt_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[int]) -> Optional[str]:
     stats = count_vagt_stats(registry.vagtlister)
     skifte_stats = filter_by_skifte(vl.starting_shift, stats)
     vl.vagter[VagtTid.ALL_DAY] = (
         Vagt(vl.starting_shift, {}) if VagtTid.ALL_DAY not in vl.vagter else vl.vagter[VagtTid.ALL_DAY]
     )
 
-    unavailable_numbers: list[int] = []
+    unavailable_numbers: list[int] = [*ude_nr]
 
     # Add afmønstringer to unavailable numbers
     for afmønstring in registry.afmønstringer:
@@ -396,14 +398,14 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, registry: 'Registry') -> Optiona
     return None
 
 
-def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
+def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[int]) -> Optional[str]:
     stats = count_vagt_stats(registry.vagtlister)
     skifte_stats = filter_by_skifte(vl.starting_shift, stats)
     vl.vagter[VagtTid.ALL_DAY] = (
         Vagt(vl.starting_shift, {}) if VagtTid.ALL_DAY not in vl.vagter else vl.vagter[VagtTid.ALL_DAY]
     )
 
-    unavailable_numbers: list[int] = []
+    unavailable_numbers: list[int] = [*ude_nr]
 
     # Add afmønstringer to unavailable numbers
     for afmønstring in registry.afmønstringer:
@@ -463,11 +465,11 @@ def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[s
     return None
 
 
-def autofill_vagtliste(vl: VagtListe, registry: 'Registry') -> Optional[str]:
+def autofill_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[int] = []) -> Optional[str]:
     if vl.vagttype == VagtType.SOEVAGT:
-        return autofill_søvagt_vagtliste(vl, registry)
+        return autofill_søvagt_vagtliste(vl, registry, ude_nr)
     if vl.vagttype == VagtType.HAVNEVAGT:
-        return autofill_havnevagt_vagtliste(vl, registry)
+        return autofill_havnevagt_vagtliste(vl, registry, ude_nr)
     if vl.vagttype == VagtType.HOLMEN:
-        return autofill_holmen_vagtliste(vl, registry)
+        return autofill_holmen_vagtliste(vl, registry, ude_nr)
     return 'Unknown vagttype'

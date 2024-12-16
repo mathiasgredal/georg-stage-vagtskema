@@ -9,7 +9,6 @@ BUGS:
 
 MUST:
 - Markering af ude numre f.eks. HU, Syg
-- Holmen
 - Print til pdf med dato-interval
 - EASTER EGG: Play 6 bakke lyd når man trykker på 6. bakke
 
