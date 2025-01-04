@@ -1,4 +1,5 @@
 import random
+import collections
 from datetime import datetime, timedelta
 from typing import Any, Optional, cast
 from typing import TYPE_CHECKING
@@ -22,11 +23,23 @@ def get_skifte_from_elev_nr(elev_nr: int) -> VagtSkifte:
 
 
 def is_nattevagt(vagttid: VagtTid) -> bool:
-    return vagttid in [VagtTid.T20_24, VagtTid.T00_04, VagtTid.T04_08]
+    return vagttid in [
+        # Søvagt
+        VagtTid.T20_24, VagtTid.T00_04, VagtTid.T04_08,
+
+        # Havnevagt
+        VagtTid.T22_00, VagtTid.T00_02, VagtTid.T02_04, VagtTid.T04_06, VagtTid.T06_08
+    ]
 
 
 def is_dagsvagt(vagttid: VagtTid) -> bool:
-    return vagttid in [VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]
+    return vagttid in [
+        # Søvagt
+        VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20,
+
+        # Havnevagt
+        VagtTid.T12_16, VagtTid.T16_18, VagtTid.T18_20, VagtTid.T20_22
+    ]
 
 
 def generate_søvagt_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
@@ -85,6 +98,18 @@ def generate_havnevagt_vagttider(start: datetime, end: datetime) -> list[VagtTid
         filtered_vagttider.append(vagttid)
 
     return filtered_vagttider
+
+def separate_havnevagt_dagsvagter_nattevagter(vagttider: list[VagtTid]) -> tuple[list[VagtTid], list[VagtTid]]:
+    dagsvagter: list[VagtTid] = []
+    nattevagter: list[VagtTid] = []
+
+    for vagttid in vagttider:
+        if is_dagsvagt(vagttid):
+            dagsvagter.append(vagttid)
+        if is_nattevagt(vagttid):
+            nattevagter.append(vagttid)
+
+    return dagsvagter, nattevagter
 
 def generate_holmen_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
     next_day = (start + timedelta(days=1)) if start.hour >= 8 else start
@@ -350,37 +375,73 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: li
         )
     unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS])
 
+    # Flag to determine if the vagter are being solved from scratch
+    scratch_solve = True
+
     # Pick landgangsvagter
     havne_vagt_tider = generate_havnevagt_vagttider(vl.start, vl.end)
-    scratch_solve = True
-    for tid in havne_vagt_tider:
-        if tid == VagtTid.ALL_DAY:
-            continue
 
+    # Split the landgangsvagter into two groups, dagsvagter and nattevagter
+    dagsvagter, nattevagter = separate_havnevagt_dagsvagter_nattevagter(havne_vagt_tider)
+
+    assigned_dagsvagter: list[int] = []
+    assigned_nattevagter: list[int] = []
+    last_two_assignments = collections.deque(maxlen=4)
+
+    for tid in dagsvagter:
         vl.vagter[tid] = Vagt(vl.starting_shift, {}) if tid not in vl.vagter else vl.vagter[tid]
+
+        if scratch_solve and vl.vagter[tid].opgaver != {}:
+            scratch_solve = False
+        
+        if not Opgave.LANDGANGSVAGT_A in vl.vagter[tid].opgaver:
+            vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A] = pick_least(
+                [*unavailable_numbers, *assigned_dagsvagter], filter_by_opgave(Opgave.LANDGANGSVAGT_A, skifte_stats)
+            )
+        
+        assigned_dagsvagter.append(vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])
+        last_two_assignments.append(vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])
+
+        if not Opgave.LANDGANGSVAGT_B in vl.vagter[tid].opgaver:
+            vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B] = pick_least(
+                [*unavailable_numbers, *assigned_dagsvagter], filter_by_opgave(Opgave.LANDGANGSVAGT_B, skifte_stats)
+            )
+        
+        assigned_dagsvagter.append(vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])
+        last_two_assignments.append(vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])
+
+    # Remove vagthavende elev from unavailable numbers
+    unavailable_numbers.remove(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV])    
+
+    for tid in nattevagter:
+        vl.vagter[tid] = Vagt(vl.starting_shift, {}) if tid not in vl.vagter else vl.vagter[tid]
+
         if scratch_solve and vl.vagter[tid].opgaver != {}:
             scratch_solve = False
 
         if not Opgave.LANDGANGSVAGT_A in vl.vagter[tid].opgaver:
             vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A] = pick_least(
-                unavailable_numbers, filter_by_opgave(Opgave.LANDGANGSVAGT_A, skifte_stats)
+                [*unavailable_numbers, *assigned_nattevagter, *last_two_assignments], filter_by_opgave(Opgave.LANDGANGSVAGT_A, skifte_stats)
             )
-        skifte_stats[(Opgave.LANDGANGSVAGT_A, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])] += 2
-        skifte_stats[(Opgave.LANDGANGSVAGT_B, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])] += 2
+        
+        assigned_nattevagter.append(vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])
+        last_two_assignments.append(vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A])
 
         if not Opgave.LANDGANGSVAGT_B in vl.vagter[tid].opgaver:
             vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B] = pick_least(
-                [vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_A], *unavailable_numbers],
-                filter_by_opgave(Opgave.LANDGANGSVAGT_B, skifte_stats),
+                [*unavailable_numbers, *assigned_nattevagter, *last_two_assignments], filter_by_opgave(Opgave.LANDGANGSVAGT_B, skifte_stats)
             )
-        skifte_stats[(Opgave.LANDGANGSVAGT_A, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])] += 2
-        skifte_stats[(Opgave.LANDGANGSVAGT_B, vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])] += 2
-
-    # HAHAHA nr. 53
+        
+        assigned_nattevagter.append(vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])
+        last_two_assignments.append(vl.vagter[tid].opgaver[Opgave.LANDGANGSVAGT_B])
+        
     if scratch_solve:
         time_53, opg_53 = None, None
 
         for tid, vagt in vl.vagter.items():
+            if is_dagsvagt(tid):
+                continue
+
             if Opgave.LANDGANGSVAGT_A in vagt.opgaver and vagt.opgaver[Opgave.LANDGANGSVAGT_A] == 53:
                 time_53, opg_53 = tid, Opgave.LANDGANGSVAGT_A
                 break
@@ -447,7 +508,6 @@ def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[
             )
         skifte_stats[(Opgave.NATTEVAGT, vl.vagter[tid].opgaver[Opgave.NATTEVAGT])] += 10
 
-    # HAHAHA nr. 53
     if scratch_solve:
         time_53, opg_53 = None, None
 
