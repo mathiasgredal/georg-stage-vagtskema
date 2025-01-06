@@ -1,11 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
+from typing import Optional
 
-from georgstage.model import Opgave, Vagt, VagtTid, VagtType
+from georgstage.model import HU, Opgave, Vagt, VagtTid, VagtType
 from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid
 from georgstage.registry import Registry
 from georgstage.util import make_cell
-from georgstage.validator import validate_vagtliste
+from georgstage.validator import show_validation_error, validate_hu, validate_vagtliste
 from tkinter import messagebox as mb
 from copy import deepcopy
 
@@ -24,6 +25,7 @@ class VagtListeTab(ttk.Frame):
         self.søvagt_vagtliste_var: dict[tuple[VagtTid, Opgave], tk.StringVar] = {}
         self.havnevagt_vagtliste_var: dict[tuple[VagtTid, Opgave], tk.StringVar] = {}
         self.holmen_vagtliste_var: dict[tuple[VagtTid, Opgave], tk.StringVar] = {}
+        self.hu_var: list[tk.StringVar] = []
 
         # GUI Elements
         self.vagtliste_listbox = tk.Listbox(self, listvariable=self.vagtliste_var, height=15, selectmode=tk.SINGLE)
@@ -33,7 +35,7 @@ class VagtListeTab(ttk.Frame):
         self.vert_sep = ttk.Separator(self, orient=tk.VERTICAL)
 
         self.action_btns = ttk.Frame(self)
-        self.save_btn = ttk.Button(self.action_btns, text='Gem', command=self.save_action)
+        self.save_btn = ttk.Button(self.action_btns, text='Anvend', command=self.save_action)
         self.autofill_btn = ttk.Button(self.action_btns, text='Auto-Udfyld', command=self.autofill_action)
         self.clear_btn = ttk.Button(self.action_btns, text='Ryd', command=self.clear_all)
 
@@ -55,7 +57,7 @@ class VagtListeTab(ttk.Frame):
         self.save_btn.pack(side='right', padx=(5, 0))
         self.autofill_btn.pack(side='right', padx=5)
         self.clear_btn.pack(side='right', padx=5)
-        self.action_btns.grid(column=2, row=1, sticky="ew", pady=5)
+        self.action_btns.grid(column=2, row=1, sticky='ew', pady=5)
         self.søvagt_table_frame.grid(column=2, row=0, sticky='nsew')
 
         self.grid_columnconfigure(0, weight=1)
@@ -79,7 +81,7 @@ class VagtListeTab(ttk.Frame):
 
     def make_holmen_table(self) -> ttk.Frame:
         table_frame = ttk.Frame(self)
-        
+
         holmen_vagt_tider = [
             VagtTid.ALL_DAY,
             VagtTid.T22_00,
@@ -89,7 +91,6 @@ class VagtListeTab(ttk.Frame):
             VagtTid.T06_08,
         ]
 
-        
         make_cell(table_frame, 0, 0, '', 15, True, self.table_header_var)
 
         make_cell(table_frame, 1, 0, Opgave.NATTEVAGT.value, 15, True)
@@ -215,11 +216,18 @@ class VagtListeTab(ttk.Frame):
                     self.havnevagt_vagtliste_var[(time, opgave)],
                 )
 
+        make_cell(table_frame, 4, 0, 'HU', 15, True, pady=(5, 0))
+        for i in range(2, 10, 2):
+            self.hu_var.append(tk.StringVar())
+            make_cell(table_frame, 4, i, '', 10, False, self.hu_var[-1], columnspan=2, ipadx=2, pady=(5, 0), sticky='w')
+            self.hu_var.append(tk.StringVar())
+            make_cell(table_frame, 5, i, '', 10, False, self.hu_var[-1], columnspan=2, ipadx=2, sticky='w')
+
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)] = tk.StringVar()
-        make_cell(table_frame, 4, 0, 'ELEV vagtskifte', 15, False, pady=(5, 0))
+        make_cell(table_frame, 6, 0, 'ELEV vagtskifte', 15, False, pady=(5, 0))
         make_cell(
             table_frame,
-            4,
+            6,
             1,
             '',
             15,
@@ -231,17 +239,10 @@ class VagtListeTab(ttk.Frame):
         )
 
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)] = tk.StringVar()
+        make_cell(table_frame, 7, 0, 'Vagthavende ELEV', 15, False)
         make_cell(
             table_frame,
-            5,
-            0,
-            'Vagthavende ELEV',
-            15,
-            False,
-        )
-        make_cell(
-            table_frame,
-            5,
+            7,
             1,
             '',
             15,
@@ -252,17 +253,10 @@ class VagtListeTab(ttk.Frame):
         )
 
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)] = tk.StringVar()
+        make_cell(table_frame, 8, 0, 'Dækselev i kabys', 15, False)
         make_cell(
             table_frame,
-            6,
-            0,
-            'Dækselev i kabys',
-            15,
-            False,
-        )
-        make_cell(
-            table_frame,
-            6,
+            8,
             1,
             '',
             15,
@@ -399,6 +393,25 @@ class VagtListeTab(ttk.Frame):
             if opgave in selected_vagtliste.vagter[tid].opgaver:
                 sv.set(str(selected_vagtliste.vagter[tid].opgaver[opgave]))
 
+        if selected_vagtliste.vagter != {}:
+            found_hu: Optional[HU] = None
+            for hu in self.registry.hu:
+                if hu.start_date == selected_vagtliste.start.date():
+                    found_hu = hu
+                    break
+
+            if found_hu is not None:
+                for i, sv in enumerate(self.hu_var):
+                    if i >= len(found_hu.assigned):
+                        break
+                    if found_hu.assigned[i] != 0:
+                        sv.set(str(found_hu.assigned[i]))
+                    else:
+                        sv.set('')
+            else:
+                for sv in self.hu_var:
+                    sv.set('')
+
         self.table_header_var.set(
             f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime('%Y-%m-%d')}"
         )
@@ -453,18 +466,17 @@ class VagtListeTab(ttk.Frame):
             else:
                 self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
-
     def save_havnevagt(self) -> None:
+        selected_vagtliste = self.registry.vagtlister[self.selected_index]
+        unvalidated_vagtliste = deepcopy(selected_vagtliste)
+
         for (tid, opgave), sv in self.havnevagt_vagtliste_var.items():
             if opgave == Opgave.ELEV_VAGTSKIFTE:
                 continue
 
-            selected_vagtliste = self.registry.vagtlister[self.selected_index]
-
             if tid not in selected_vagtliste.vagter:
                 continue
 
-            unvalidated_vagtliste = deepcopy(selected_vagtliste)
             if tid not in unvalidated_vagtliste.vagter:
                 unvalidated_vagtliste.vagter[tid] = Vagt(unvalidated_vagtliste.starting_shift, {})
             if sv.get() == '':
@@ -472,15 +484,30 @@ class VagtListeTab(ttk.Frame):
             else:
                 unvalidated_vagtliste.vagter[tid].opgaver[opgave] = int(sv.get())
 
-            validation_result = validate_vagtliste(unvalidated_vagtliste)
-            if validation_result is not None:
-                mb.showerror(
-                    'Fejl',
-                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
-                )
-                return
-            else:
-                self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
+        validation_result = validate_vagtliste(unvalidated_vagtliste)
+        if validation_result is not None:
+            show_validation_error(validation_result)
+            return
+        else:
+            self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
+
+        selected_vagtliste = self.registry.vagtlister[self.selected_index]
+        found_hu: Optional[HU] = None
+        for hu in self.registry.hu:
+            if hu.start_date == selected_vagtliste.start.date():
+                found_hu = hu
+                break
+
+        if found_hu is None:
+            found_hu = HU(selected_vagtliste.start.date(), [])
+            self.registry.hu.append(found_hu)
+
+        found_hu.assigned = [0 if sv.get() == '' else int(sv.get()) for sv in self.hu_var]
+
+        validation_result = validate_hu(selected_vagtliste, found_hu)
+        if validation_result is not None:
+            show_validation_error(validation_result)
+            return
 
     def save_søvagt(self) -> None:
         selected_vagtliste = self.registry.vagtlister[self.selected_index]

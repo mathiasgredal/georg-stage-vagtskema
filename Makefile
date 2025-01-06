@@ -6,14 +6,20 @@ venv:
 
 .PHONY: lint
 lint: venv
-	@echo 'linting' & \
-	venv/bin/ruff check src & \
-	venv/bin/ruff format --check src & \
-	echo 'linting done' & \
+	@echo 'linting' && \
+	venv/bin/ruff check src && \
+	venv/bin/ruff format --check src && \
+	echo 'linting done' && \
 	venv/bin/mypy src
+
+.PHONY: format
+format: venv
+	@echo 'formatting' && \
+	venv/bin/ruff format src && \
+	echo 'formatting done'
 
 .PHONY: run
 run: venv
-	@echo 'running' & \
-	venv/bin/python src & \
+	@echo 'running' && \
+	venv/bin/python src && \
 	echo 'running done'

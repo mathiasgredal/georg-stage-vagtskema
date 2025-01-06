@@ -1,7 +1,7 @@
 """This module contains the registry, responsible for loading and storing data"""
 
 from typing import Optional
-from georgstage.model import VagtListe, VagtPeriode, Afmønstring
+from georgstage.model import VagtListe, VagtPeriode, Afmønstring, HU
 from georgstage.solver import autofill_vagtliste
 from uuid import UUID
 from georgstage.util import EnhancedJSONDecoder, EnhancedJSONEncoder
@@ -15,6 +15,7 @@ class Registry:
     vagtperioder: list[VagtPeriode] = []
     vagtlister: list[VagtListe] = []
     afmønstringer: list[Afmønstring] = []
+    hu: list[HU] = []
     event_listeners: list[callable] = []
 
     def load_from_file(self, filename: str) -> None:
@@ -23,6 +24,7 @@ class Registry:
         self.vagtperioder = [VagtPeriode(**vp) for vp in data['vagtperioder']]
         self.vagtlister = [VagtListe(**vl) for vl in data['vagtlister']]
         self.afmønstringer = [Afmønstring(**af) for af in data['afmønstringer']]
+        self.hu = [HU(**h) for h in data['hu']]
         self.notify_update_listeners()
 
     def save_to_string(self) -> str:
@@ -30,6 +32,7 @@ class Registry:
             'vagtperioder': self.vagtperioder,
             'vagtlister': self.vagtlister,
             'afmønstringer': self.afmønstringer,
+            'hu': self.hu,
         }
         return json.dumps(data, cls=EnhancedJSONEncoder, ensure_ascii=False, indent=4)
 

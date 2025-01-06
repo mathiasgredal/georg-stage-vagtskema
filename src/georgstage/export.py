@@ -6,6 +6,7 @@ from tkinter import messagebox as mb
 from copy import deepcopy
 import tempfile
 
+
 class Exporter:
     def export_vls(self, input_vls: list[VagtListe]) -> None:
         if len(input_vls) == 0:
@@ -117,7 +118,7 @@ class Exporter:
             f.write(html_table.encode())
             f.flush()
             f.close()
-            webbrowser.open(f"file://{f.name}", new=1, autoraise=True)
+            webbrowser.open(f'file://{f.name}', new=1, autoraise=True)
 
     def make_vl_fragment(self, vl: VagtListe) -> str:
         weekdays = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag']

@@ -31,6 +31,7 @@ class Opgave(Enum):
     LANDGANGSVAGT_B = 'Landgangsvagt B'
     NATTEVAGT = 'Nattevagt'
     ELEV_VAGTSKIFTE = 'ELEV Vagtskifte'
+    HU = 'HU'
 
 
 @unique
@@ -75,6 +76,12 @@ class VagtTid(Enum):
 class Vagt:
     vagt_skifte: VagtSkifte
     opgaver: dict[Opgave, int]
+
+
+@dataclass
+class HU:
+    start_date: date
+    assigned: list[int]
 
 
 @dataclass

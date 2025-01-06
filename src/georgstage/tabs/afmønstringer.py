@@ -51,7 +51,7 @@ class AfmønstringTab(ttk.Frame):
         self.btn_row = ttk.Frame(self)
         self.add_btn = ttk.Button(self.btn_row, text='Tilføj...', command=self.add_item)
         self.remove_btn = ttk.Button(self.btn_row, text='Fjern', command=self.remove_item)
-        self.save_btn = ttk.Button(self.btn_row, text='Gem', default='active', command=self.save_action)
+        self.save_btn = ttk.Button(self.btn_row, text='Anvend', default='active', command=self.save_action)
         self.update_vls_btn = ttk.Button(self.btn_row, text='Opdater vagtlister...', command=self.update_vls)
 
         self.help_label = ttk.Label(

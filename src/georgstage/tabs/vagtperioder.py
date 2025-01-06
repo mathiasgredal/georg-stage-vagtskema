@@ -60,7 +60,7 @@ class VagtPeriodeTab(ttk.Frame):
         self.add_remove_frame = ttk.Frame(self)
         self.add = ttk.Button(self.add_remove_frame, text='Tilføj...', command=self.add_item)
         self.remove = ttk.Button(self.add_remove_frame, text='Fjern', command=self.remove_item)
-        self.send_btn = ttk.Button(self, text='Gem', default='active', command=self.save_action)
+        self.send_btn = ttk.Button(self, text='Anvend', default='active', command=self.save_action)
 
         # Grid all the widgets
         self.vagtperioder_listbox.grid(
@@ -191,7 +191,7 @@ class VagtPeriodeTab(ttk.Frame):
         self.sync_form()
         self.sync_list()
 
-    def _get_vp_index(self, vp_id:Optional[ UUID]) -> Optional[int]:
+    def _get_vp_index(self, vp_id: Optional[UUID]) -> Optional[int]:
         if vp_id is None:
             return None
 
