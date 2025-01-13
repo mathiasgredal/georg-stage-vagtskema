@@ -12,6 +12,7 @@ from georgstage.registry import Registry
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox as mb
 from pathlib import Path
+from georgstage.util import Style
 from hashlib import sha256
 
 if os.name == 'nt':
@@ -23,10 +24,11 @@ if os.name == 'nt':
 class App:
     def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.geometry('850x450')
+        self.root.geometry('850x475')
 
-        self.style = ttk.Style(self.root)
+        self.style = Style(self.root)
         self.style.theme_use('default')
+        self.style.configure('Borderless.TNotebook', borderwidth=0, extends='TNotebook')
 
         tabControl = ttk.Notebook(self.root)
         self.registry = Registry()

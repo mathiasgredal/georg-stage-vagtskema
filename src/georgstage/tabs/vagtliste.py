@@ -116,7 +116,7 @@ class VagtListeTab(ttk.Frame):
                 )
 
         self.holmen_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)] = tk.StringVar()
-        make_cell(table_frame, 4, 0, 'ELEV vagtskifte', 15, False, pady=(5, 0))
+        make_cell(table_frame, 4, 0, 'ELEV vagtskifte', 15, True, pady=(5, 0))
         make_cell(
             table_frame,
             4,
@@ -137,7 +137,7 @@ class VagtListeTab(ttk.Frame):
             0,
             'Vagthavende ELEV',
             15,
-            False,
+            True,
         )
         make_cell(
             table_frame,
@@ -158,7 +158,7 @@ class VagtListeTab(ttk.Frame):
             0,
             'Dækselev i kabys',
             15,
-            False,
+            True,
         )
         make_cell(
             table_frame,
@@ -224,14 +224,14 @@ class VagtListeTab(ttk.Frame):
             make_cell(table_frame, 5, i, '', 10, False, self.hu_var[-1], columnspan=2, ipadx=2, sticky='w')
 
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)] = tk.StringVar()
-        make_cell(table_frame, 6, 0, 'ELEV vagtskifte', 15, False, pady=(5, 0))
+        make_cell(table_frame, 6, 0, 'ELEV vagtskifte', 15, True, pady=(5, 0))
         make_cell(
             table_frame,
             6,
             1,
             '',
             15,
-            False,
+            True,
             self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.ELEV_VAGTSKIFTE)],
             pady=(5, 0),
             columnspan=4,
@@ -239,7 +239,7 @@ class VagtListeTab(ttk.Frame):
         )
 
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.VAGTHAVENDE_ELEV)] = tk.StringVar()
-        make_cell(table_frame, 7, 0, 'Vagthavende ELEV', 15, False)
+        make_cell(table_frame, 7, 0, 'Vagthavende ELEV', 15, True)
         make_cell(
             table_frame,
             7,
@@ -253,7 +253,7 @@ class VagtListeTab(ttk.Frame):
         )
 
         self.havnevagt_vagtliste_var[(VagtTid.ALL_DAY, Opgave.DAEKSELEV_I_KABYS)] = tk.StringVar()
-        make_cell(table_frame, 8, 0, 'Dækselev i kabys', 15, False)
+        make_cell(table_frame, 8, 0, 'Dækselev i kabys', 15, True)
         make_cell(
             table_frame,
             8,

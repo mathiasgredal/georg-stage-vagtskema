@@ -2,6 +2,7 @@ import dataclasses
 import json
 import datetime
 import tkinter as tk
+from tkinter import ttk
 import enum
 from typing import Optional
 import uuid
@@ -63,8 +64,34 @@ class EnhancedJSONDecoder(json.JSONDecoder):
         return ret
 
 
+class Style(ttk.Style):
+    EXTENDS = 'extends'
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._style = {}
+
+    def configure(self, cls, **kwargs):
+        self._style.setdefault(cls, {}).update(kwargs)
+
+        extends = self._style.get(kwargs.get(Style.EXTENDS), {})
+        super().configure(cls, **extends)
+
+        super().configure(cls, **kwargs)
+
+
 def make_cell(
-    parent: tk.Misc, row: int, col: int, text: str, width: int, readonly: bool, sv: Optional[tk.StringVar] = None, **kw
+    parent: tk.Misc,
+    row: int,
+    col: int,
+    text: str,
+    width: int,
+    readonly: bool,
+    sv: Optional[tk.StringVar] = None,
+    bg_color='white',
+    fg_color='black',
+    bold=False,
+    **kw,
 ) -> None:
     entry1 = tk.Entry(
         parent,
@@ -73,9 +100,12 @@ def make_cell(
         highlightthickness=0,
         borderwidth=1,
         relief='ridge',
+        background=bg_color,
+        foreground=fg_color,
+        font=('TkDefaultFont', 13, 'bold' if bold else 'normal'),
     )
     if readonly:
         entry1.configure(takefocus=False)
         entry1.configure(state='disabled')
-        entry1.configure(disabledbackground='white', disabledforeground='black')
+        entry1.configure(disabledbackground=bg_color, disabledforeground=fg_color)
     entry1.grid(row=row, column=col + 2, **kw)

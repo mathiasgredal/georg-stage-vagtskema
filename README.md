@@ -17,3 +17,5 @@ NICE TO HAVE:
 - Autosave
 - Treeview indel i kolonner for listen af vagtperioder
 - In vagtliste tab, only allow numbers input
+
+- Show all raised exception in message box
