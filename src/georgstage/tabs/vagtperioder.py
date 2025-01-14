@@ -7,6 +7,8 @@ from georgstage.model import VagtPeriode, VagtType, VagtSkifte
 from georgstage.registry import Registry
 from uuid import UUID, uuid4
 
+from georgstage.util import make_cell
+
 
 class VagtPeriodeTab(ttk.Frame):
     def __init__(self, parent: tk.Misc, registry: Registry) -> None:
@@ -18,6 +20,11 @@ class VagtPeriodeTab(ttk.Frame):
         self.selected_shift = tk.StringVar()
         self.vagtperioder_var = tk.Variable()
         self.note_var = tk.StringVar()
+        self.chronological_vagthavende_var = tk.IntVar(value=0)
+        self.chronological_vagthavende_var.trace_add('write', self.on_check_chronological_vagthavende)
+        self.initial_vagthavende_first_shift_var = tk.IntVar(value=1)
+        self.initial_vagthavende_second_shift_var = tk.IntVar(value=21)
+        self.initial_vagthavende_third_shift_var = tk.IntVar(value=41)
 
         self.vagtperioder_listbox = tk.Listbox(
             self, listvariable=self.vagtperioder_var, height=15, selectmode=tk.SINGLE, exportselection=False
@@ -57,6 +64,20 @@ class VagtPeriodeTab(ttk.Frame):
         self.note_label = ttk.Label(self.vagtperiode_frame, text='Note:')
         self.note_entry = ttk.Entry(self.vagtperiode_frame, textvariable=self.note_var)
 
+        self.vagthavende_label = ttk.Checkbutton(
+            self.vagtperiode_frame,
+            text='Kronologisk vagthavende ELEV:',
+            variable=self.chronological_vagthavende_var,
+        )
+        self.vagthavende_entry_frame = tk.Frame(self.vagtperiode_frame)
+
+        make_cell(self.vagthavende_entry_frame, 0, 0, '1#', 6, True, ipadx=2)
+        make_cell(self.vagthavende_entry_frame, 0, 1, '2#', 6, True, ipadx=1)
+        make_cell(self.vagthavende_entry_frame, 0, 2, '3#', 6, True, ipadx=2)
+        make_cell(self.vagthavende_entry_frame, 1, 0, '', 6, False, self.initial_vagthavende_first_shift_var, ipadx=2)
+        make_cell(self.vagthavende_entry_frame, 1, 1, '', 6, False, self.initial_vagthavende_second_shift_var, ipadx=1)
+        make_cell(self.vagthavende_entry_frame, 1, 2, '', 6, False, self.initial_vagthavende_third_shift_var, ipadx=2)
+
         self.add_remove_frame = ttk.Frame(self)
         self.add = ttk.Button(self.add_remove_frame, text='Tilføj...', command=self.add_item)
         self.remove = ttk.Button(self.add_remove_frame, text='Fjern', command=self.remove_item)
@@ -88,6 +109,9 @@ class VagtPeriodeTab(ttk.Frame):
         self.note_label.grid(column=0, row=11, sticky='w', padx=10, pady=(5, 0))
         self.note_entry.grid(column=0, row=12, sticky='w', padx=20)
 
+        self.vagthavende_label.grid(column=0, row=15, sticky='w', padx=10, pady=(5, 0))
+        self.vagthavende_entry_frame.grid(column=0, row=16, sticky='w', padx=20)
+
         self.send_btn.grid(column=1, row=1, sticky=tk.E)
         self.add_remove_frame.grid(column=0, row=1, pady=(5, 0), sticky='we')
 
@@ -115,6 +139,12 @@ class VagtPeriodeTab(ttk.Frame):
         index = int(w.curselection()[0])
         self.selected_vp_id = self.registry.vagtperioder[index].id
         self.sync_form()
+
+    def on_check_chronological_vagthavende(self, a, b, c):
+        if self.chronological_vagthavende_var.get() == 0:
+            self.vagthavende_entry_frame.grid_forget()
+        else:
+            self.vagthavende_entry_frame.grid()
 
     def sync_list(self) -> None:
         self.vagtperioder_var.set([vagtperiode.to_string() for vagtperiode in self.registry.vagtperioder])
@@ -145,6 +175,10 @@ class VagtPeriodeTab(ttk.Frame):
                 break
         self.vagtperiode_type.set(selected_vagtperiode.vagttype.value)
         self.note_var.set(selected_vagtperiode.note)
+        self.chronological_vagthavende_var.set(selected_vagtperiode.chronological_vagthavende)
+        self.initial_vagthavende_first_shift_var.set(selected_vagtperiode.initial_vagthavende_first_shift)
+        self.initial_vagthavende_second_shift_var.set(selected_vagtperiode.initial_vagthavende_second_shift)
+        self.initial_vagthavende_third_shift_var.set(selected_vagtperiode.initial_vagthavende_third_shift)
 
     def save_action(self) -> None:
         if len(self.registry.vagtperioder) == 0:
@@ -157,6 +191,10 @@ class VagtPeriodeTab(ttk.Frame):
             datetime.fromisoformat(self.enddate_var.get()),
             self.note_var.get(),
             self.vagtskifte_opts[self.selected_shift.get()],
+            self.chronological_vagthavende_var.get() == 1,
+            self.initial_vagthavende_first_shift_var.get(),
+            self.initial_vagthavende_second_shift_var.get(),
+            self.initial_vagthavende_third_shift_var.get(),
         )
 
         self.registry.update_vagtperiode(self.selected_vp_id, new_vagtperiode)
@@ -174,6 +212,10 @@ class VagtPeriodeTab(ttk.Frame):
                 end=next_end_date,
                 note='FRA-TIL',
                 starting_shift=VagtSkifte.SKIFTE_1,
+                chronological_vagthavende=False,
+                initial_vagthavende_first_shift=1,
+                initial_vagthavende_second_shift=21,
+                initial_vagthavende_third_shift=41,
             )
         )
         self.selected_vp_id = self.registry.vagtperioder[-1].id

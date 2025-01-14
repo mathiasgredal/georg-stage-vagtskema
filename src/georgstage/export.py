@@ -1,17 +1,21 @@
 import webbrowser
-import base64
 from georgstage.solver import søvagt_skifte_for_vagttid
-from georgstage.model import VagtTid, Opgave, VagtListe
+from georgstage.model import VagtTid, Opgave, VagtListe, VagtType
+from georgstage.registry import Registry
 from tkinter import messagebox as mb
 from copy import deepcopy
 import tempfile
 
 
 class Exporter:
+    def __init__(self, registry: Registry) -> None:
+        self.registry = registry
+
     def export_vls(self, input_vls: list[VagtListe]) -> None:
         if len(input_vls) == 0:
-            mb.showerror('Fejl', 'Ingen vagtlisteer at eksportere')
+            mb.showerror('Fejl', 'Ingen vagtlister at eksportere')
             return
+
         input_vls = deepcopy(input_vls)
 
         vls = []
@@ -93,21 +97,35 @@ class Exporter:
       line-height: 16px;
     }}
 
+    @media print {{
+        html, body, .page {{
+            height: 100%;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }}
+    }}
+
+    @media print {{
+        .page {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+    }}
+
     @page {{
       size: auto;
       margin: 0;
     }}
 
-    @media print {{
-        .pagebreak {{ clear: both; page-break-before: always; }}
-    }}
   </style>
 </head>
 
 <body>
-  <center>
-   {'<div class="pagebreak"> </div>'.join(self.make_vl_fragment(vl) for vl in vls)}
-  </center>
+   {''.join(self.make_vl_fragment(vl) for vl in vls)}
 </body>
 
 </html>
@@ -123,7 +141,8 @@ class Exporter:
     def make_vl_fragment(self, vl: VagtListe) -> str:
         weekdays = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag']
         return f"""
-    <h2>Vagtskema: Fra {weekdays[vl.get_date().weekday()]} d. {vl.get_date().strftime('%d/%m')} til {weekdays[vl.end.weekday()]} d. {vl.end.strftime('%d/%m')}</h2>
+<div class="page">
+    <h2 style="margin-top: 60px">Vagtskema: Fra {weekdays[vl.get_date().weekday()]} d. {vl.get_date().strftime('%d/%m')} til {weekdays[vl.end.weekday()]} d. {vl.end.strftime('%d/%m')}</h2>
     <table style="table-layout: fixed; width: 574px; border: 2px solid black">
       <colgroup>
         <col style="width: 150px">
@@ -247,12 +266,10 @@ class Exporter:
         </tr>
         <tr>
           <td class="tg-label">HU</td>
-          <td colspan="2"></td>
-          <td colspan="2"></td>
-          <td colspan="2"></td>
-          <td colspan="2"></td>
-          <td colspan="2"></td>
-          <td colspan="2"></td>
+          <td colspan="3">{self.get_hu_nr(0, vl)} / {self.get_hu_nr(1, vl)}</td>
+          <td colspan="3">{self.get_hu_nr(2, vl)} / {self.get_hu_nr(3, vl)}</td>
+          <td colspan="3">{self.get_hu_nr(4, vl)} / {self.get_hu_nr(5, vl)}</td>
+          <td colspan="3">{self.get_hu_nr(6, vl)} / {self.get_hu_nr(7, vl)}</td>
         </tr>
         <tr style="border-top: 2px solid black">
           <td class="tg-bold">Søvagt</td>
@@ -382,6 +399,8 @@ class Exporter:
         </tr>
       </tbody>
     </table>
+    <div style="margin-top: 60px; margin-bottom: 5px; margin-left: auto; margin-right: 30px; font-size: small;"><i>Lavet af: Mathias Gredal (6. bakke!!!)</i></div>
+</div>
         """
 
     def get_nr(self, vl: VagtListe, tid: VagtTid, opgave: Opgave) -> str:
@@ -390,6 +409,21 @@ class Exporter:
         if opgave not in vl.vagter[tid].opgaver:
             return ''
         return str(vl.vagter[tid].opgaver[opgave])
+
+    def get_hu_nr(self, index: int, vl: VagtListe) -> str:
+        if vl.vagttype != VagtType.HAVNEVAGT:
+            return ''
+
+        for hu in self.registry.hu:
+            if hu.start_date != vl.start.date():
+                continue
+
+            if index >= len(hu.assigned):
+                continue
+
+            return str(hu.assigned[index])
+
+        return ''
 
     def get_skifte(self, vl: VagtListe, tid: VagtTid) -> str:
         if tid not in vl.vagter or (tid in vl.vagter and Opgave.ORDONNANS not in vl.vagter[tid].opgaver):

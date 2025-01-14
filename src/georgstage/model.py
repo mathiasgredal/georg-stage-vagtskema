@@ -4,6 +4,8 @@ from enum import Enum, unique
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
+from georgstage import solver
+
 
 def next_datetime(current: datetime, hour: int, **kwargs) -> datetime:
     repl = current.replace(hour=hour, **kwargs)
@@ -94,6 +96,10 @@ class VagtListe:
     note: str
     starting_shift: VagtSkifte
     vagter: dict[VagtTid, Vagt]
+    chronological_vagthavende: bool = False
+    initial_vagthavende_first_shift: int = 1
+    initial_vagthavende_second_shift: int = 21
+    initial_vagthavende_third_shift: int = 41
 
     def __post_init__(self):
         if isinstance(self.vagttype, str):
@@ -130,8 +136,21 @@ class VagtPeriode:
     end: datetime
     note: str
     starting_shift: VagtSkifte
+    chronological_vagthavende: bool = False
+    initial_vagthavende_first_shift: int = 1
+    initial_vagthavende_second_shift: int = 21
+    initial_vagthavende_third_shift: int = 41
 
     def __post_init__(self):
+        if self.initial_vagthavende_first_shift < 1 or self.initial_vagthavende_first_shift > 20 or self.initial_vagthavende_first_shift in solver.kabys_elev_nrs:
+            raise ValueError(f'Ugyldig vagthavende nr. fra første skifte: {self.initial_vagthavende_first_shift}')
+    
+        if self.initial_vagthavende_second_shift < 21 or self.initial_vagthavende_second_shift > 40 or self.initial_vagthavende_second_shift in solver.kabys_elev_nrs:
+            raise ValueError(f'Ugyldig vagthavende nr. fra andet skifte: {self.initial_vagthavende_second_shift}')
+        
+        if self.initial_vagthavende_third_shift < 41 or self.initial_vagthavende_third_shift > 60 or self.initial_vagthavende_third_shift in solver.kabys_elev_nrs:
+            raise ValueError(f'Ugyldig vagthavende nr. fra tredje skifte: {self.initial_vagthavende_third_shift}')
+        
         if isinstance(self.vagttype, str):
             self.vagttype = VagtType(self.vagttype)
 
@@ -159,7 +178,20 @@ class VagtPeriode:
         if self.vagttype == VagtType.SOEVAGT:
             # Each day has the same starting shift
             return [
-                VagtListe(uuid4(), self.id, self.vagttype, date[0], date[1], self.note, self.starting_shift, {})
+                VagtListe(
+                    uuid4(),
+                    self.id,
+                    self.vagttype,
+                    date[0],
+                    date[1],
+                    self.note,
+                    self.starting_shift,
+                    {},
+                    self.chronological_vagthavende,
+                    self.initial_vagthavende_first_shift,
+                    self.initial_vagthavende_second_shift,
+                    self.initial_vagthavende_third_shift,
+                )
                 for date in vagtliste_dates
             ]
         elif self.vagttype == VagtType.HAVNEVAGT or self.vagttype == VagtType.HOLMEN:
@@ -169,7 +201,18 @@ class VagtPeriode:
             for date in vagtliste_dates:
                 result.append(
                     VagtListe(
-                        uuid4(), self.id, self.vagttype, date[0], date[1], self.note, VagtSkifte(current_shift), {}
+                        uuid4(),
+                        self.id,
+                        self.vagttype,
+                        date[0],
+                        date[1],
+                        self.note,
+                        VagtSkifte(current_shift),
+                        {},
+                        self.chronological_vagthavende,
+                        self.initial_vagthavende_first_shift,
+                        self.initial_vagthavende_second_shift,
+                        self.initial_vagthavende_third_shift,
                     )
                 )
                 current_shift = (current_shift % 3) + 1

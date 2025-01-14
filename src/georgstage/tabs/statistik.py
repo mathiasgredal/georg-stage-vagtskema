@@ -15,6 +15,7 @@ skifte_labels = {
     VagtSkifte.SKIFTE_3: 'Tredje skifte',
 }
 
+
 class StatistikTab(ttk.Frame):
     def __init__(self, parent, registry: Registry, *args, **kwargs) -> None:
         ttk.Frame.__init__(self, parent, padding=(5, 5, 12, 0), *args, **kwargs)
@@ -53,7 +54,9 @@ class StatistikTab(ttk.Frame):
         ttk.Label(frame, text='Vagtstatistik', font=('TkDefaultFont', 16, 'bold')).pack()
 
         for skifte in VagtSkifte.__members__.values():
-            ttk.Label(frame, text=f'{skifte_labels[skifte]} [{skifte.value}#]:', font=('TkDefaultFont', 13, 'bold')).pack(anchor='nw', side='top', pady=(10, 0))
+            ttk.Label(
+                frame, text=f'{skifte_labels[skifte]} [{skifte.value}#]:', font=('TkDefaultFont', 13, 'bold')
+            ).pack(anchor='nw', side='top', pady=(10, 0))
             for kategori in [
                 'Vagthavende ELEV',
                 'Dækselev i kabys',
@@ -220,7 +223,7 @@ class StatistikTab(ttk.Frame):
 
                     if opg in [Opgave.PEJLEGAST_A, Opgave.PEJLEGAST_B]:
                         stats[('Pejlegast', elev_nr)] = stats.get(('Pejlegast', elev_nr), 0) + 1
-                    
+
                     if opg in [Opgave.LANDGANGSVAGT_A, Opgave.LANDGANGSVAGT_B]:
                         stats[('Landgang (Havn)', elev_nr)] = stats.get(('Landgang (Havn)', elev_nr), 0) + 1
 
@@ -231,7 +234,7 @@ class StatistikTab(ttk.Frame):
         for hu in self.registry.hu:
             should_count = False
             for vagtliste in self.registry.vagtlister:
-                if hu.start_date == vagtliste.start.date():
+                if hu.start_date == vagtliste.start.date() and vagtliste.vagttype == VagtType.HAVNEVAGT:
                     should_count = True
                     break
 
@@ -273,11 +276,18 @@ class StatistikTab(ttk.Frame):
             skifte_stats[skifte]['Pejlegast'] += int(self.others_vars.get(('Pejlegast', i), 0).get())
             skifte_stats[skifte]['HU'] += int(self.others_vars.get(('HU', i), 0).get())
 
-
         for skifte in VagtSkifte.__members__.values():
-            self.text_vars[('Vagthavende ELEV', skifte)].set(f" - Vagthavende ELEV: {skifte_stats.get(skifte, {}).get('Vagthavende ELEV', 0)}")
-            self.text_vars[('Dækselev i kabys', skifte)].set(f" - Dækselev i kabys: {skifte_stats.get(skifte, {}).get('Dækselev i kabys', 0)}")
+            self.text_vars[('Vagthavende ELEV', skifte)].set(
+                f" - Vagthavende ELEV: {skifte_stats.get(skifte, {}).get('Vagthavende ELEV', 0)}"
+            )
+            self.text_vars[('Dækselev i kabys', skifte)].set(
+                f" - Dækselev i kabys: {skifte_stats.get(skifte, {}).get('Dækselev i kabys', 0)}"
+            )
             self.text_vars[('Søvagt', skifte)].set(f" - Søvagter: {skifte_stats.get(skifte, {}).get('Søvagt', 0)}")
-            self.text_vars[('Landgang (Havn)', skifte)].set(f" - Landgangsvagter: {skifte_stats.get(skifte, {}).get('Landgang (Havn)', 0)}")
-            self.text_vars[('Pejlegast', skifte)].set(f" - Pejlegaster: {skifte_stats.get(skifte, {}).get('Pejlegast', 0)}")
+            self.text_vars[('Landgang (Havn)', skifte)].set(
+                f" - Landgangsvagter: {skifte_stats.get(skifte, {}).get('Landgang (Havn)', 0)}"
+            )
+            self.text_vars[('Pejlegast', skifte)].set(
+                f" - Pejlegaster: {skifte_stats.get(skifte, {}).get('Pejlegast', 0)}"
+            )
             self.text_vars[('HU', skifte)].set(f" - HU: {skifte_stats.get(skifte, {}).get('HU', 0)}")

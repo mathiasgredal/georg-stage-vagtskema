@@ -69,6 +69,10 @@ class Registry:
                 vp.end = vagtperiode.end
                 vp.note = vagtperiode.note
                 vp.starting_shift = vagtperiode.starting_shift
+                vp.chronological_vagthavende = vagtperiode.chronological_vagthavende
+                vp.initial_vagthavende_first_shift = vagtperiode.initial_vagthavende_first_shift
+                vp.initial_vagthavende_second_shift = vagtperiode.initial_vagthavende_second_shift
+                vp.initial_vagthavende_third_shift = vagtperiode.initial_vagthavende_third_shift
                 break
 
         new_vl_stubs = vagtperiode.get_vagtliste_stubs()
@@ -83,6 +87,10 @@ class Registry:
                     and vl.starting_shift == new_vl.starting_shift
                     and vl.start == new_vl.start
                     and vl.end == new_vl.end
+                    and vl.chronological_vagthavende == new_vl.chronological_vagthavende
+                    and vl.initial_vagthavende_first_shift == new_vl.initial_vagthavende_first_shift
+                    and vl.initial_vagthavende_second_shift == new_vl.initial_vagthavende_second_shift
+                    and vl.initial_vagthavende_third_shift == new_vl.initial_vagthavende_third_shift
                 ):
                     vl_should_be_kept = True
                     break

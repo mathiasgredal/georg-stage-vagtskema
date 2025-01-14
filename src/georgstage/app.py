@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import ttk
+import traceback
 from typing import Optional
 
 from georgstage.export import Exporter
@@ -34,7 +35,7 @@ class App:
         self.registry = Registry()
         self.file_path: Optional[Path] = None
         self.out_of_sync = False
-        self.exporter = Exporter()
+        self.exporter = Exporter(self.registry)
 
         self.set_window_title()
 
@@ -79,6 +80,8 @@ class App:
 
         # Do a periodic check if we are out of sync
         self.root.after(1000, self.check_sync)
+
+        tk.Tk.report_callback_exception = self.handle_exception
 
     def run(self) -> None:
         self.root.mainloop()
@@ -137,6 +140,10 @@ class App:
             self.root.title(f'{base_title} ({self.file_path.resolve()})')
         else:
             self.root.title(f'{base_title} (ingen fil)')
+
+    def handle_exception(self, *args) -> None:
+        err = traceback.format_exception(*args)
+        mb.showwarning('Fejl', err[-1])
 
 
 if __name__ == '__main__':

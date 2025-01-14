@@ -396,7 +396,10 @@ class VagtListeTab(ttk.Frame):
         if selected_vagtliste.vagter != {}:
             found_hu: Optional[HU] = None
             for hu in self.registry.hu:
-                if hu.start_date == selected_vagtliste.start.date():
+                if (
+                    hu.start_date == selected_vagtliste.start.date()
+                    and selected_vagtliste.vagttype == VagtType.HAVNEVAGT
+                ):
                     found_hu = hu
                     break
 
@@ -494,7 +497,7 @@ class VagtListeTab(ttk.Frame):
         selected_vagtliste = self.registry.vagtlister[self.selected_index]
         found_hu: Optional[HU] = None
         for hu in self.registry.hu:
-            if hu.start_date == selected_vagtliste.start.date():
+            if hu.start_date == selected_vagtliste.start.date() and selected_vagtliste.vagttype == VagtType.HAVNEVAGT:
                 found_hu = hu
                 break
 

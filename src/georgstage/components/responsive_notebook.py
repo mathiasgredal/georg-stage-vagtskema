@@ -1,5 +1,5 @@
 from tkinter import ttk
-import tkinter as tk
+
 
 class ResponsiveNotebook(ttk.Frame):
     """
@@ -12,7 +12,7 @@ class ResponsiveNotebook(ttk.Frame):
         self.tabs = {}
 
         # GUI Elements
-        self.tab_control = ttk.Notebook(self, style="Borderless.TNotebook")
+        self.tab_control = ttk.Notebook(self, style='Borderless.TNotebook')
         self.tab_stack = ttk.Frame(self)
 
         # Layout
