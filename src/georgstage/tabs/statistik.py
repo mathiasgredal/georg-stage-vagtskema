@@ -52,11 +52,13 @@ class StatistikTab(ttk.Frame):
 
     def make_text_stats(self, parent) -> ttk.Frame:
         frame = ttk.Frame(parent)
-        ttk.Label(frame, text='Vagtstatistik', font=('TkDefaultFont', get_default_font_size()+3, 'bold')).pack()
+        ttk.Label(frame, text='Vagtstatistik', font=('TkDefaultFont', get_default_font_size() + 3, 'bold')).pack()
 
         for skifte in VagtSkifte.__members__.values():
             ttk.Label(
-                frame, text=f'{skifte_labels[skifte]} [{skifte.value}#]:', font=('TkDefaultFont', get_default_font_size(), 'bold')
+                frame,
+                text=f'{skifte_labels[skifte]} [{skifte.value}#]:',
+                font=('TkDefaultFont', get_default_font_size(), 'bold'),
             ).pack(anchor='nw', side='top', pady=(10, 0))
             for kategori in [
                 'Vagthavende ELEV',
@@ -279,16 +281,16 @@ class StatistikTab(ttk.Frame):
 
         for skifte in VagtSkifte.__members__.values():
             self.text_vars[('Vagthavende ELEV', skifte)].set(
-                f" - Vagthavende ELEV: {skifte_stats.get(skifte, {}).get('Vagthavende ELEV', 0)}"
+                f' - Vagthavende ELEV: {skifte_stats.get(skifte, {}).get("Vagthavende ELEV", 0)}'
             )
             self.text_vars[('Dækselev i kabys', skifte)].set(
-                f" - Dækselev i kabys: {skifte_stats.get(skifte, {}).get('Dækselev i kabys', 0)}"
+                f' - Dækselev i kabys: {skifte_stats.get(skifte, {}).get("Dækselev i kabys", 0)}'
             )
-            self.text_vars[('Søvagt', skifte)].set(f" - Søvagter: {skifte_stats.get(skifte, {}).get('Søvagt', 0)}")
+            self.text_vars[('Søvagt', skifte)].set(f' - Søvagter: {skifte_stats.get(skifte, {}).get("Søvagt", 0)}')
             self.text_vars[('Landgang (Havn)', skifte)].set(
-                f" - Landgangsvagter: {skifte_stats.get(skifte, {}).get('Landgang (Havn)', 0)}"
+                f' - Landgangsvagter: {skifte_stats.get(skifte, {}).get("Landgang (Havn)", 0)}'
             )
             self.text_vars[('Pejlegast', skifte)].set(
-                f" - Pejlegaster: {skifte_stats.get(skifte, {}).get('Pejlegast', 0)}"
+                f' - Pejlegaster: {skifte_stats.get(skifte, {}).get("Pejlegast", 0)}'
             )
-            self.text_vars[('HU', skifte)].set(f" - HU: {skifte_stats.get(skifte, {}).get('HU', 0)}")
+            self.text_vars[('HU', skifte)].set(f' - HU: {skifte_stats.get(skifte, {}).get("HU", 0)}')

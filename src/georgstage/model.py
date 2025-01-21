@@ -126,9 +126,9 @@ class VagtListe:
 
     def to_string(self) -> str:
         if self.vagttype == VagtType.SOEVAGT:
-            return f"{self.vagttype.value}: {self.get_date().strftime('%Y-%m-%d')}"
+            return f'{self.vagttype.value}: {self.get_date().strftime("%Y-%m-%d")}'
         else:
-            return f"{self.vagttype.value}[{self.starting_shift.value}#]:  {self.get_date().strftime('%Y-%m-%d')}"
+            return f'{self.vagttype.value}[{self.starting_shift.value}#]:  {self.get_date().strftime("%Y-%m-%d")}'
 
 
 @dataclass
@@ -178,7 +178,7 @@ class VagtPeriode:
             self.starting_shift = VagtSkifte(self.starting_shift)
 
     def to_string(self) -> str:
-        return f"{self.vagttype.value}: {self.start.strftime('%Y-%m-%d %H:%M')} - {self.end.strftime('%Y-%m-%d %H:%M')} [{self.starting_shift.value}#] ({self.note})"
+        return f'{self.vagttype.value}: {self.start.strftime("%Y-%m-%d %H:%M")} - {self.end.strftime("%Y-%m-%d %H:%M")} [{self.starting_shift.value}#] ({self.note})'
 
     def get_vagtliste_stubs(self) -> list[VagtListe]:
         vagtliste_dates = []
@@ -254,4 +254,4 @@ class Afmønstring:
     end_date: date
 
     def to_string(self) -> str:
-        return f"{self.name}[nr. {self.elev_nr}]:  {self.start_date.strftime('%Y-%m-%d')} - {self.end_date.strftime('%Y-%m-%d')}"
+        return f'{self.name}[nr. {self.elev_nr}]:  {self.start_date.strftime("%Y-%m-%d")} - {self.end_date.strftime("%Y-%m-%d")}'

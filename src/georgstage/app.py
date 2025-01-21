@@ -27,12 +27,17 @@ if os.name == 'nt':
 class App:
     def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.geometry('850x475')
+        self.root.geometry('850x475' if sys.platform == 'darwin' else '850x570')
 
         self.style = Style(self.root)
         self.style.theme_use('default')
         self.style.configure('Borderless.TNotebook', borderwidth=0, extends='TNotebook')
-        self.style.configure('Danger.TButton', foreground='red', extends='TButton')
+        self.style.configure(
+            'Danger.TButton',
+            font=('TkDefaultFont', get_default_font_size(), 'bold'),
+            foreground='red',
+            extends='TButton',
+        )
 
         logo = tk.PhotoImage(data=ICON_DATA)
         self.root.iconphoto(True, logo)
@@ -88,9 +93,11 @@ class App:
         )
 
         # 6. bakke REPRESENT
-        ttk.Label(self.root, text=' Made by Mathias Gredal (6. bakke!!!) ', font=f'TkDefaultFont {get_default_font_size()-3} italic').place(
-            relx=1, y=2.5, anchor='ne'
-        )
+        ttk.Label(
+            self.root,
+            text=' Made by Mathias Gredal (6. bakke!!!) ',
+            font=f'TkDefaultFont {get_default_font_size() - 1} italic',
+        ).place(relx=1, y=2.5, anchor='ne')
 
         # Do a periodic check if we are out of sync
         self.root.after(1000, self.check_sync)
@@ -143,7 +150,7 @@ class App:
     def undo(self) -> None:
         self.registry.undo_last_update()
         self.set_window_title()
-    
+
     def redo(self) -> None:
         self.registry.redo_last_update()
         self.set_window_title()

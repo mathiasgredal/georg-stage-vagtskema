@@ -67,7 +67,6 @@ class VagtPeriodeTab(ttk.Frame):
         self.note_label = ttk.Label(self.vagtperiode_frame, text='Note:')
         self.note_entry = ttk.Entry(self.vagtperiode_frame, textvariable=self.note_var)
 
-
         self.holmen_double_nattevagt_label = ttk.Checkbutton(
             self.vagtperiode_frame,
             text='Holmen: Dobbelt nattevagt',

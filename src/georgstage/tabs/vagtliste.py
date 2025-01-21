@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from tkinter import ttk
 from typing import Optional
@@ -6,7 +7,7 @@ from georgstage.components.tooltip import ToolTip
 from georgstage.model import HU, Opgave, Vagt, VagtTid, VagtType
 from georgstage.solver import autofill_vagtliste
 from georgstage.registry import Registry
-from georgstage.util import make_cell
+from georgstage.util import get_default_font_size, make_cell
 from georgstage.validator import show_validation_error, validate_hu, validate_vagtliste
 from tkinter import messagebox as mb
 from copy import deepcopy
@@ -33,7 +34,10 @@ class VagtListeTab(ttk.Frame):
         self.vagtliste_listbox.configure(exportselection=False)
         self.vagtliste_listbox.bind('<<ListboxSelect>>', self.on_select_list)
 
-        self.autofill_all_frm = tk.Frame(self.vagtliste_listbox, background='white', width=25, height=25)
+        button_size = int(get_default_font_size() * (2 if sys.platform == 'darwin' else 3.5))
+        self.autofill_all_frm = tk.Frame(
+            self.vagtliste_listbox, background='white', width=button_size, height=button_size
+        )
         self.autofill_all_btn = ttk.Button(
             self.autofill_all_frm, text=' ↻', command=self.on_autofill_all, style='Danger.TButton'
         )
@@ -120,7 +124,6 @@ class VagtListeTab(ttk.Frame):
 
         make_cell(table_frame, 1, 0, Opgave.NATTEVAGT_A.value, 15, True)
         make_cell(table_frame, 2, 0, Opgave.NATTEVAGT_B.value, 15, True)
-
 
         for index, time in enumerate(holmen_vagt_tider):
             if time == VagtTid.ALL_DAY:
@@ -357,7 +360,7 @@ class VagtListeTab(ttk.Frame):
     def sync_list(self) -> None:
         if len(self.registry.vagtlister) == 0:
             return
-        
+
         self.vagtliste_var.set([vagtliste.to_string() for vagtliste in self.registry.vagtlister])
 
         if self.selected_index >= len(self.registry.vagtlister):
@@ -399,7 +402,7 @@ class VagtListeTab(ttk.Frame):
                 self.søvagt_vagtliste_var[(time, opgave)].set(str(nr))
 
         self.table_header_var.set(
-            f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.get_date().strftime('%Y-%m-%d')}"
+            f'{selected_vagtliste.vagttype.value}: {selected_vagtliste.get_date().strftime("%Y-%m-%d")}'
         )
 
     def sync_havnevagt_table(self) -> None:
@@ -442,7 +445,7 @@ class VagtListeTab(ttk.Frame):
                     sv.set('')
 
         self.table_header_var.set(
-            f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime('%Y-%m-%d')}"
+            f'{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime("%Y-%m-%d")}'
         )
         return
 
@@ -463,7 +466,7 @@ class VagtListeTab(ttk.Frame):
                 sv.set(str(selected_vagtliste.vagter[tid].opgaver[opgave]))
 
         self.table_header_var.set(
-            f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime('%Y-%m-%d')}"
+            f'{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime("%Y-%m-%d")}'
         )
         return
 

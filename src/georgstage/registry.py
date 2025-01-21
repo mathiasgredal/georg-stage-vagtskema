@@ -147,7 +147,7 @@ class Registry:
             return
         self.redo_stack.append(self.versions.pop())
         self.load_from_string(self.versions[-1])
-    
+
     def redo_last_update(self) -> None:
         if len(self.redo_stack) == 0:
             return

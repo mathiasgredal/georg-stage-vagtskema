@@ -59,7 +59,7 @@ class AfmønstringTab(ttk.Frame):
         self.help_label = ttk.Label(
             self.afmønstring_no_selection,
             text='Vælg venligst en afmønstring fra listen\n eller tilføj en ny afmønstring.',
-            font=f'TkDefaultFont {get_default_font_size()-3} italic',
+            font=f'TkDefaultFont {get_default_font_size() - 1} italic',
             justify='center',
         )
 
