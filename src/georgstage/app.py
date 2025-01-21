@@ -15,7 +15,7 @@ from georgstage.registry import Registry
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox as mb
 from pathlib import Path
-from georgstage.util import Style, osx_set_process_name
+from georgstage.util import Style, get_default_font_size, osx_set_process_name
 from hashlib import sha256
 
 if os.name == 'nt':
@@ -88,7 +88,7 @@ class App:
         )
 
         # 6. bakke REPRESENT
-        ttk.Label(self.root, text=' Made by Mathias Gredal (6. bakke!!!) ', font='TkDefaultFont 10 italic').place(
+        ttk.Label(self.root, text=' Made by Mathias Gredal (6. bakke!!!) ', font=f'TkDefaultFont {get_default_font_size()-3} italic').place(
             relx=1, y=2.5, anchor='ne'
         )
 
@@ -112,20 +112,27 @@ class App:
             self.file_path = Path(askopenfilename(filetypes=[('Georg Stage Vagtplan', '*.json')]))
             if self.file_path is not None:
                 self.registry.load_from_file(self.file_path)
+                self.registry.versions.clear()
+                self.registry.redo_stack.clear()
                 self.set_window_title()
-                self.root.focus_force()
             else:
                 mb.showerror('Fejl', 'Filen blev ikke åbnet')
         except FileNotFoundError:
             mb.showerror('Fejl', 'Filen kunne ikke findes')
+        except Exception as e:
+            self.file_path = None
+            raise e
+        finally:
+            self.root.focus_force()
 
     def save_file(self) -> None:
         if self.file_path is not None:
             self.registry.save_to_file(self.file_path)
             return
 
-        self.file_path = Path(asksaveasfilename(filetypes=[('Georg Stage Vagtplan', '*.json')]))
-        if self.file_path is not None:
+        result = asksaveasfilename(filetypes=[('Georg Stage Vagtplan', '*.json')])
+        if result:
+            self.file_path = Path(result)
             if not self.file_path.name.endswith('.json'):
                 self.file_path = self.file_path.with_suffix('.json')
             self.registry.save_to_file(self.file_path)

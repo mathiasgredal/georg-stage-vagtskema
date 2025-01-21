@@ -8,6 +8,7 @@ from georgstage.components.responsive_notebook import ResponsiveNotebook
 from georgstage.registry import Registry
 from georgstage.model import Opgave, VagtSkifte, VagtTid, VagtType
 from georgstage.solver import get_skifte_from_elev_nr, kabys_elev_nrs
+from georgstage.util import get_default_font_size
 
 skifte_labels = {
     VagtSkifte.SKIFTE_1: 'Første skifte',
@@ -51,11 +52,11 @@ class StatistikTab(ttk.Frame):
 
     def make_text_stats(self, parent) -> ttk.Frame:
         frame = ttk.Frame(parent)
-        ttk.Label(frame, text='Vagtstatistik', font=('TkDefaultFont', 16, 'bold')).pack()
+        ttk.Label(frame, text='Vagtstatistik', font=('TkDefaultFont', get_default_font_size()+3, 'bold')).pack()
 
         for skifte in VagtSkifte.__members__.values():
             ttk.Label(
-                frame, text=f'{skifte_labels[skifte]} [{skifte.value}#]:', font=('TkDefaultFont', 13, 'bold')
+                frame, text=f'{skifte_labels[skifte]} [{skifte.value}#]:', font=('TkDefaultFont', get_default_font_size(), 'bold')
             ).pack(anchor='nw', side='top', pady=(10, 0))
             for kategori in [
                 'Vagthavende ELEV',

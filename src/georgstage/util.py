@@ -2,7 +2,7 @@ import dataclasses
 import json
 import datetime
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, font
 import enum
 from typing import Optional
 import uuid
@@ -102,7 +102,7 @@ def make_cell(
         relief='ridge',
         background=bg_color,
         foreground=fg_color,
-        font=('TkDefaultFont', 13, 'bold' if bold else 'normal'),
+        font=('TkDefaultFont', get_default_font_size(), 'bold' if bold else 'normal'),
     )
     if readonly:
         entry1.configure(takefocus=False)
@@ -133,3 +133,7 @@ def osx_set_process_name(app_title) -> bool:
         app_services.CPSSetProcessName(psn_p, app_title)
 
     return False
+
+def get_default_font_size() -> int:
+    """Get the default font size for the current platform"""
+    return font.nametofont("TkDefaultFont").actual()['size']

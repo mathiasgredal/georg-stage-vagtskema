@@ -143,7 +143,7 @@ class Registry:
         self.event_listeners.append(listener)
 
     def undo_last_update(self) -> None:
-        if len(self.versions) == 1:
+        if len(self.versions) <= 1:
             return
         self.redo_stack.append(self.versions.pop())
         self.load_from_string(self.versions[-1])

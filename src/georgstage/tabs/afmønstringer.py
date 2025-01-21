@@ -7,6 +7,8 @@ from georgstage.solver import autofill_vagtliste
 from uuid import uuid4, UUID
 from datetime import date, timedelta
 
+from georgstage.util import get_default_font_size
+
 
 class AfmønstringTab(ttk.Frame):
     def __init__(self, parent, registry: Registry, *args, **kwargs) -> None:
@@ -57,7 +59,7 @@ class AfmønstringTab(ttk.Frame):
         self.help_label = ttk.Label(
             self.afmønstring_no_selection,
             text='Vælg venligst en afmønstring fra listen\n eller tilføj en ny afmønstring.',
-            font='TkDefaultFont 10 italic',
+            font=f'TkDefaultFont {get_default_font_size()-3} italic',
             justify='center',
         )
 
