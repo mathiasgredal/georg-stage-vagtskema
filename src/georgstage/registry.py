@@ -1,5 +1,6 @@
 """This module contains the registry, responsible for loading and storing data"""
 
+import collections
 from typing import Optional
 from georgstage.model import VagtListe, VagtPeriode, Afmønstring, HU
 from georgstage.solver import autofill_vagtliste
@@ -17,15 +18,21 @@ class Registry:
     afmønstringer: list[Afmønstring] = []
     hu: list[HU] = []
     event_listeners: list[callable] = []
+    versions = collections.deque(maxlen=50)
+    redo_stack = collections.deque(maxlen=50)
 
-    def load_from_file(self, filename: str) -> None:
-        """Load the registry from a file"""
-        data = json.loads(pathlib.Path(filename).read_text(), cls=EnhancedJSONDecoder)
+    def load_from_string(self, data_str: str) -> None:
+        """Load the registry from a string"""
+        data = json.loads(data_str, cls=EnhancedJSONDecoder)
         self.vagtperioder = [VagtPeriode(**vp) for vp in data['vagtperioder']]
         self.vagtlister = [VagtListe(**vl) for vl in data['vagtlister']]
         self.afmønstringer = [Afmønstring(**af) for af in data['afmønstringer']]
         self.hu = [HU(**h) for h in data['hu']] if 'hu' in data else []
-        self.notify_update_listeners()
+        self.notify_update_listeners(pure_update=True)
+
+    def load_from_file(self, filename: str) -> None:
+        """Load the registry from a file"""
+        self.load_from_string(pathlib.Path(filename).read_text())
 
     def save_to_string(self) -> str:
         data = {
@@ -58,7 +65,7 @@ class Registry:
         self.vagtlister.sort(key=lambda vl: vl.start)
         self.notify_update_listeners()
 
-    def update_vagtperiode(self, id: UUID, vagtperiode: VagtPeriode) -> None:
+    def update_vagtperiode(self, id: UUID, vagtperiode: VagtPeriode, notify: bool = True) -> None:
         """Update a vagtperiode in the registry"""
         # When we update a vagtperiode, we need to find all the vagtlister that were produced by it
         # and update them as well
@@ -115,7 +122,9 @@ class Registry:
                 print(error)
             self.vagtlister.append(new_vl)
         self.vagtlister.sort(key=lambda vl: vl.start)
-        self.notify_update_listeners()
+
+        if notify:
+            self.notify_update_listeners()
 
     def remove_vagtperiode(self, vagtperiode: VagtPeriode) -> None:
         """Remove a vagtperiode from the registry"""
@@ -133,6 +142,24 @@ class Registry:
     def register_update_listener(self, listener) -> None:
         self.event_listeners.append(listener)
 
-    def notify_update_listeners(self) -> None:
+    def undo_last_update(self) -> None:
+        if len(self.versions) == 1:
+            return
+        self.redo_stack.append(self.versions.pop())
+        self.load_from_string(self.versions[-1])
+    
+    def redo_last_update(self) -> None:
+        if len(self.redo_stack) == 0:
+            return
+        last_version = self.redo_stack.pop()
+        self.versions.append(last_version)
+        self.load_from_string(last_version)
+
+    def notify_update_listeners(self, pure_update: bool = False) -> None:
+        version = self.save_to_string()
+        if not pure_update and len(self.versions) == 0 or len(self.versions) > 0 and version != self.versions[-1]:
+            self.versions.append(version)
+            self.redo_stack.clear()
+
         for listener in self.event_listeners:
             listener()

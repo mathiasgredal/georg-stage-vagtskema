@@ -56,9 +56,15 @@ class App:
         file_menu.add_command(label='Gem vagtplan', command=self.save_file, accelerator='Ctrl-S')
         file_menu.add_command(label='Print...', command=self.print_some)
         file_menu.add_command(label='Print alle', command=self.print_all, accelerator='Ctrl-P')
+        edit_menu = tk.Menu(menu)
+        menu.add_cascade(label='Rediger', menu=edit_menu)
+        edit_menu.add_command(label='Fortryd', command=self.undo, accelerator='Ctrl-Z')
+        edit_menu.add_command(label='Annuller fortryd', command=self.redo, accelerator='Ctrl-Y')
         self.root.bind('<Control-o>', lambda _: self.open_file())
         self.root.bind('<Control-s>', lambda _: self.save_file())
         self.root.bind('<Control-p>', lambda _: self.print_all())
+        self.root.bind('<Control-z>', lambda _: self.undo())
+        self.root.bind('<Control-y>', lambda _: self.redo())
 
         help_menu = tk.Menu(menu)
         menu.add_cascade(label='Hjælp', menu=help_menu)
@@ -126,6 +132,14 @@ class App:
             self.set_window_title()
         else:
             mb.showerror('Fejl', 'Filen blev ikke gemt')
+
+    def undo(self) -> None:
+        self.registry.undo_last_update()
+        self.set_window_title()
+    
+    def redo(self) -> None:
+        self.registry.redo_last_update()
+        self.set_window_title()
 
     def check_sync(self) -> None:
         if self.file_path is not None:

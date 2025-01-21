@@ -100,9 +100,9 @@ class VagtListeTab(ttk.Frame):
         old_selected_index = self.selected_index
         self.registry.vagtlister = []
         for vagtperiode in self.registry.vagtperioder:
-            self.registry.update_vagtperiode(vagtperiode.id, vagtperiode)
+            self.registry.update_vagtperiode(vagtperiode.id, vagtperiode, notify=False)
         self.selected_index = old_selected_index
-        self.sync_list()
+        self.registry.notify_update_listeners()
 
     def make_holmen_table(self) -> ttk.Frame:
         table_frame = ttk.Frame(self)

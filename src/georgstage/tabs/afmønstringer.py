@@ -211,7 +211,7 @@ class AfmønstringTab(ttk.Frame):
         if has_chronological_vagthavende:
             self.registry.vagtlister = []
             for vagtperiode in self.registry.vagtperioder:
-                self.registry.update_vagtperiode(vagtperiode.id, vagtperiode)
+                self.registry.update_vagtperiode(vagtperiode.id, vagtperiode, notify=False)
 
         self.registry.notify_update_listeners()
         self.can_update_vls = False
