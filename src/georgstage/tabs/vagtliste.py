@@ -4,7 +4,7 @@ from typing import Optional
 
 from georgstage.components.tooltip import ToolTip
 from georgstage.model import HU, Opgave, Vagt, VagtTid, VagtType
-from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid
+from georgstage.solver import autofill_vagtliste
 from georgstage.registry import Registry
 from georgstage.util import make_cell
 from georgstage.validator import show_validation_error, validate_hu, validate_vagtliste

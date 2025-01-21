@@ -9,6 +9,7 @@ from georgstage.tabs.statistik import StatistikTab
 from georgstage.tabs.vagtliste import VagtListeTab
 from georgstage.tabs.vagtperioder import VagtPeriodeTab
 from georgstage.tabs.afmønstringer import AfmønstringTab
+from georgstage.icon_data import ICON_DATA
 from georgstage.registry import Registry
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox as mb
@@ -32,7 +33,10 @@ class App:
         self.style.configure('Borderless.TNotebook', borderwidth=0, extends='TNotebook')
         self.style.configure('Danger.TButton', foreground='red', extends='TButton')
 
-        tabControl = ttk.Notebook(self.root)
+        logo = tk.PhotoImage(data=ICON_DATA)
+        self.root.iconphoto(True, logo)
+
+        self.tab_control = ttk.Notebook(self.root)
         self.registry = Registry()
         self.file_path: Optional[Path] = None
         self.out_of_sync = False
@@ -60,18 +64,18 @@ class App:
         )
 
         self.tabs = {
-            'Vagtperioder': VagtPeriodeTab(tabControl, self.registry),
-            'Vagtliste': VagtListeTab(tabControl, self.registry),
-            'Afmønstringer': AfmønstringTab(tabControl, self.registry),
-            'Statistik': StatistikTab(tabControl, self.registry),
+            'Vagtperioder': VagtPeriodeTab(self.tab_control, self.registry),
+            'Vagtliste': VagtListeTab(self.tab_control, self.registry),
+            'Afmønstringer': AfmønstringTab(self.tab_control, self.registry),
+            'Statistik': StatistikTab(self.tab_control, self.registry),
         }
 
         for key, value in self.tabs.items():
-            tabControl.add(value, text=key)
+            self.tab_control.add(value, text=key)
 
-        tabControl.pack(padx=0, pady=(0, 0), expand=1, fill='both')
-        tabControl.bind(
-            '<<NotebookTabChanged>>', lambda _: list(self.tabs.values())[tabControl.index('current')].focus_set()
+        self.tab_control.pack(padx=0, pady=(0, 0), expand=1, fill='both')
+        self.tab_control.bind(
+            '<<NotebookTabChanged>>', lambda _: list(self.tabs.values())[self.tab_control.index('current')].focus_set()
         )
 
         # 6. bakke REPRESENT

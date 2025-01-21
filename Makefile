@@ -9,8 +9,8 @@ lint: venv
 	@echo 'linting' && \
 	venv/bin/ruff check src && \
 	venv/bin/ruff format --check src && \
-	echo 'linting done' && \
-	venv/bin/mypy src
+	venv/bin/mypy src && \
+	echo 'linting done' 
 
 .PHONY: format
 format: venv
