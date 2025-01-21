@@ -22,6 +22,8 @@ class Exporter:
         current_vl = input_vls[0]
         for next_vl in input_vls[1:]:
             if current_vl.get_date() == next_vl.get_date() and current_vl.vagttype != next_vl.vagttype:
+                if VagtTid.T08_12 in current_vl.vagter and VagtTid.T08_12 in next_vl.vagter:
+                    next_vl.vagter[VagtTid.T08_12].opgaver.update(current_vl.vagter[VagtTid.T08_12].opgaver)
                 current_vl.vagter.update(next_vl.vagter)
                 current_vl.end = next_vl.end
             else:
@@ -399,7 +401,7 @@ class Exporter:
         </tr>
       </tbody>
     </table>
-    <div style="margin-top: 60px; margin-bottom: 5px; margin-left: auto; margin-right: 30px; font-size: small;"><i>Lavet af: Mathias Gredal (6. bakke!!!)</i></div>
+    <div style="margin-top: 60px; margin-bottom: 5px; margin-left: auto; margin-right: 30px; font-size: small;"><i>Lavet af: Mathias Gredal (nr. 44, 6. bakke!!!)</i></div>
 </div>
         """
 
