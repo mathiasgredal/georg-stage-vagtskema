@@ -31,4 +31,12 @@ NICE TO HAVE:
 - [TODO] Overgang fra Holmen/havn til søvagt: Dæks i kabys fra vagt skiftet bliver dæks i kabys mellem 8-12/8-15/15-20 af hængig af tidspunktet fra skiftet
 - [TODO] Vagthavende elev: Rettelse: man kan ikke være vagthavende elev to gange i træk, hverken i havn eller i søen.
 - [IN_PROGRESS] Tilvalg: Vagthavende elev er random eller Vagthavende elev er kronologisk, hvor man angiv start numrene for skifterne
+    - Begrænsning: Hvis der er en pejlegast som er i konflikt med den kronologiske vagthavende elev, så genereres begge pejlegasterne på ny tilfældigt
+    - Det er rigtig svært at lave delvise opdateringer af vagtlister, hvis der er en kronologisk vagthavende elev. Har lavet en knap til at genskabe alle vagter i vagtlisten, så den kronologiske orden bliver opdateret. Ulempen er at eventuelle manuelle ændringer bliver overskrevet.
+    - mangler havn og holmen
+
+- [TODO] Lav knap til at genskabe vagter i vagtlisten
+- [TODO] Lav en skærm til at vise instrukser på vagtperiode tab, når man ikke har valgt noget
+
+
 

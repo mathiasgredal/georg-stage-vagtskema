@@ -22,9 +22,9 @@ class VagtPeriodeTab(ttk.Frame):
         self.note_var = tk.StringVar()
         self.chronological_vagthavende_var = tk.IntVar(value=0)
         self.chronological_vagthavende_var.trace_add('write', self.on_check_chronological_vagthavende)
-        self.initial_vagthavende_first_shift_var = tk.IntVar(value=1)
-        self.initial_vagthavende_second_shift_var = tk.IntVar(value=21)
-        self.initial_vagthavende_third_shift_var = tk.IntVar(value=41)
+        self.initial_vagthavende_first_shift_var = tk.IntVar(value=0)
+        self.initial_vagthavende_second_shift_var = tk.IntVar(value=0)
+        self.initial_vagthavende_third_shift_var = tk.IntVar(value=0)
 
         self.vagtperioder_listbox = tk.Listbox(
             self, listvariable=self.vagtperioder_var, height=15, selectmode=tk.SINGLE, exportselection=False
@@ -213,9 +213,9 @@ class VagtPeriodeTab(ttk.Frame):
                 note='FRA-TIL',
                 starting_shift=VagtSkifte.SKIFTE_1,
                 chronological_vagthavende=False,
-                initial_vagthavende_first_shift=1,
-                initial_vagthavende_second_shift=21,
-                initial_vagthavende_third_shift=41,
+                initial_vagthavende_first_shift=0,
+                initial_vagthavende_second_shift=0,
+                initial_vagthavende_third_shift=0,
             )
         )
         self.selected_vp_id = self.registry.vagtperioder[-1].id

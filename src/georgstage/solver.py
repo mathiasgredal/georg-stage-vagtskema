@@ -148,6 +148,118 @@ def generate_holmen_vagttider(start: datetime, end: datetime) -> list[VagtTid]:
     return filtered_vagttider
 
 
+def get_last_vagthavende_from_skifte(
+    time: VagtTid,
+    current_vl: VagtListe,
+    registry: 'Registry',
+    skifte: VagtSkifte,
+    initial_vagthavende: dict[VagtSkifte, int],
+) -> int:
+    # Check if there is a earlier time in the same vl
+    for tid, vagt in current_vl.vagter.items():
+        if tid == time:
+            continue
+
+        if vagt.vagt_skifte != skifte:
+            continue
+
+        if Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
+            return vagt.opgaver[Opgave.VAGTHAVENDE_ELEV]
+
+    last_vl: Optional[VagtListe] = None
+    # Find the vl which is closest to the current vl, but before it
+    for vl in registry.vagtlister:
+        if vl.start >= current_vl.start:
+            continue
+
+        if initial_vagthavende[skifte] != 0 and vl.vagtperiode_id != current_vl.vagtperiode_id:
+            continue
+
+        # Check if a vagthavende from this skifte is assigned in the vl
+        has_vagthavende = False
+        for _, vagt in vl.vagter.items():
+            if vagt.vagt_skifte == skifte and Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
+                has_vagthavende = True
+                break
+
+        if not has_vagthavende:
+            continue
+
+        if last_vl is None or vl.start > last_vl.start:
+            last_vl = vl
+
+    if last_vl is None:
+        return -1
+
+    # Find all the vagthaverne from the last vl from the given skifte
+    vagthavende: dict[VagtTid, int] = {}
+    for tid, vagt in last_vl.vagter.items():
+        if vagt.vagt_skifte == skifte and Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
+            vagthavende[tid] = vagt.opgaver[Opgave.VAGTHAVENDE_ELEV]
+
+    if VagtTid.ALL_DAY in vagthavende:
+        return vagthavende[VagtTid.ALL_DAY]
+
+    for tid in [VagtTid.T20_24, VagtTid.T00_04, VagtTid.T04_08]:
+        if tid in vagthavende:
+            return vagthavende[tid]
+
+    for tid in [VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]:
+        if tid in vagthavende:
+            return vagthavende[tid]
+
+    return -1
+
+
+def get_chronological_vagthavende(
+    time: VagtTid,
+    vl: VagtListe,
+    registry: 'Registry',
+    skifte: VagtSkifte,
+    unavailable_numbers: list[int],
+) -> int:
+    vagthavende = get_last_vagthavende_from_skifte(
+        time,
+        vl,
+        registry,
+        skifte,
+        {
+            VagtSkifte.SKIFTE_1: vl.initial_vagthavende_first_shift,
+            VagtSkifte.SKIFTE_2: vl.initial_vagthavende_second_shift,
+            VagtSkifte.SKIFTE_3: vl.initial_vagthavende_third_shift,
+        },
+    )
+
+    if vagthavende == -1:
+        if skifte == VagtSkifte.SKIFTE_1:
+            vagthavende = 1 if vl.initial_vagthavende_first_shift == 0 else vl.initial_vagthavende_first_shift
+        if skifte == VagtSkifte.SKIFTE_2:
+            vagthavende = 21 if vl.initial_vagthavende_second_shift == 0 else vl.initial_vagthavende_second_shift
+        if skifte == VagtSkifte.SKIFTE_3:
+            vagthavende = 41 if vl.initial_vagthavende_third_shift == 0 else vl.initial_vagthavende_third_shift
+        return vagthavende
+
+    while True:
+        vagthavende = get_next_vagthavende(vagthavende, skifte)
+        if vagthavende not in unavailable_numbers:
+            break
+
+    return vagthavende
+
+
+def get_next_vagthavende(elev_nr: int, skifte: VagtSkifte) -> int:
+    if skifte == VagtSkifte.SKIFTE_1 and elev_nr == 20:
+        return 1
+    if skifte == VagtSkifte.SKIFTE_2 and elev_nr == 40:
+        return 21
+    if skifte == VagtSkifte.SKIFTE_3 and elev_nr == 60:
+        return 41
+    next_elev_nr = elev_nr + 1
+    if next_elev_nr in kabys_elev_nrs:
+        return get_next_vagthavende(next_elev_nr, skifte)
+    return next_elev_nr
+
+
 def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'Registry', ude_nr: list[int]) -> Vagt:
     vagt = Vagt(skifte, {}) if time not in vl.vagter else vl.vagter[time]
     stats = count_vagt_stats(registry.vagtlister)
@@ -173,6 +285,17 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
         if (vl.start - timedelta(days=2)).date() == _vl.start.date():
             vl_two_days_ago = _vl
 
+    if not Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
+        if vl.chronological_vagthavende:
+            vagt.opgaver[Opgave.VAGTHAVENDE_ELEV] = get_chronological_vagthavende(
+                time, vl, registry, skifte, unavailable_numbers
+            )
+        else:
+            vagt.opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
+                unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
+            )
+    unavailable_numbers.append(vagt.opgaver[Opgave.VAGTHAVENDE_ELEV])
+
     if (
         time == VagtTid.T15_20
         and vl_one_day_ago is not None
@@ -180,14 +303,9 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
         and vl_one_day_ago.starting_shift == vl.starting_shift
         and VagtTid.T15_20 in vl_one_day_ago.vagter
         and Opgave.PEJLEGAST_B in vl_one_day_ago.vagter[VagtTid.T15_20].opgaver
+        and vl_one_day_ago.vagter[VagtTid.T15_20].opgaver[Opgave.PEJLEGAST_B] != vagt.opgaver[Opgave.VAGTHAVENDE_ELEV]
     ):
         unavailable_numbers.append(vl_one_day_ago.vagter[VagtTid.T15_20].opgaver[Opgave.PEJLEGAST_B])
-
-    if not Opgave.VAGTHAVENDE_ELEV in vagt.opgaver:
-        vagt.opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
-            unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
-        )
-    unavailable_numbers.append(vagt.opgaver[Opgave.VAGTHAVENDE_ELEV])
 
     # if nattevagt, find dagsvagter and add to unavailable_numbers
     fysiske_vagter = [Opgave.ORDONNANS, Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER]
@@ -233,13 +351,6 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
             vagt.opgaver[opgave] = pick_least(unavailable_numbers, filter_by_opgave(opgave, skifte_stats))
         unavailable_numbers.append(vagt.opgaver[opgave])
 
-    if time in [VagtTid.T04_08, VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]:
-        if not Opgave.DAEKSELEV_I_KABYS in vagt.opgaver:
-            vagt.opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
-                unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
-            )
-        unavailable_numbers.append(vagt.opgaver[Opgave.DAEKSELEV_I_KABYS])
-
     if time == VagtTid.T15_20:
         # If vl one days ago is None or the shift for that time is not the same, create 2 random numbers
         def create_2_pejlegasts() -> None:
@@ -258,7 +369,11 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
         if vl_one_day_ago is not None:
             if vl_one_day_ago.starting_shift != vl.starting_shift:
                 create_2_pejlegasts()
-            if time in vl_one_day_ago.vagter and Opgave.PEJLEGAST_B in vl_one_day_ago.vagter[time].opgaver:
+            if (
+                time in vl_one_day_ago.vagter
+                and Opgave.PEJLEGAST_B in vl_one_day_ago.vagter[time].opgaver
+                and vl_one_day_ago.vagter[time].opgaver[Opgave.PEJLEGAST_B] != vagt.opgaver[Opgave.VAGTHAVENDE_ELEV]
+            ):
                 vagt.opgaver[Opgave.PEJLEGAST_A] = vl_one_day_ago.vagter[time].opgaver[Opgave.PEJLEGAST_B]
                 unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_A])
                 if not Opgave.PEJLEGAST_B in vagt.opgaver:
@@ -270,6 +385,13 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
                 create_2_pejlegasts()
         else:
             create_2_pejlegasts()
+
+    if time in [VagtTid.T04_08, VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]:
+        if not Opgave.DAEKSELEV_I_KABYS in vagt.opgaver:
+            vagt.opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
+                unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
+            )
+        unavailable_numbers.append(vagt.opgaver[Opgave.DAEKSELEV_I_KABYS])
 
     return vagt
 
@@ -382,9 +504,14 @@ def autofill_havnevagt_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: li
 
     # Pick vagthavende elev
     if not Opgave.VAGTHAVENDE_ELEV in vl.vagter[VagtTid.ALL_DAY].opgaver:
-        vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
-            unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
-        )
+        if vl.chronological_vagthavende:
+            vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV] = get_chronological_vagthavende(
+                VagtTid.ALL_DAY, vl, registry, vl.starting_shift, unavailable_numbers
+            )
+        else:
+            vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
+                unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
+            )
     unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV])
 
     # Pick dækselev
@@ -506,9 +633,14 @@ def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[
 
     # Pick vagthavende elev
     if not Opgave.VAGTHAVENDE_ELEV in vl.vagter[VagtTid.ALL_DAY].opgaver:
-        vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
-            unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
-        )
+        if vl.chronological_vagthavende:
+            vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV] = get_chronological_vagthavende(
+                VagtTid.ALL_DAY, vl, registry, vl.starting_shift, unavailable_numbers
+            )
+        else:
+            vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV] = pick_least(
+                unavailable_numbers, filter_by_opgave(Opgave.VAGTHAVENDE_ELEV, skifte_stats)
+            )
     unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV])
 
     # Pick dækselev

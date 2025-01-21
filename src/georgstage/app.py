@@ -30,6 +30,7 @@ class App:
         self.style = Style(self.root)
         self.style.theme_use('default')
         self.style.configure('Borderless.TNotebook', borderwidth=0, extends='TNotebook')
+        self.style.configure('Danger.TButton', foreground='red', extends='TButton')
 
         tabControl = ttk.Notebook(self.root)
         self.registry = Registry()
@@ -143,6 +144,7 @@ class App:
 
     def handle_exception(self, *args) -> None:
         err = traceback.format_exception(*args)
+        print(''.join(err))
         mb.showwarning('Fejl', err[-1])
 
 

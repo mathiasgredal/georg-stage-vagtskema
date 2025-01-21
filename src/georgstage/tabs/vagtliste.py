@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Optional
 
+from georgstage.components.tooltip import ToolTip
 from georgstage.model import HU, Opgave, Vagt, VagtTid, VagtType
 from georgstage.solver import autofill_vagtliste, søvagt_skifte_for_vagttid
 from georgstage.registry import Registry
@@ -32,6 +33,12 @@ class VagtListeTab(ttk.Frame):
         self.vagtliste_listbox.configure(exportselection=False)
         self.vagtliste_listbox.bind('<<ListboxSelect>>', self.on_select_list)
 
+        self.autofill_all_frm = tk.Frame(self.vagtliste_listbox, background='white', width=25, height=25)
+        self.autofill_all_btn = ttk.Button(
+            self.autofill_all_frm, text=' ↻', command=self.on_autofill_all, style='Danger.TButton'
+        )
+        self.autofill_all_btn_ttp = ToolTip(self.autofill_all_btn, 'Genskab alle vagter')
+
         self.vert_sep = ttk.Separator(self, orient=tk.VERTICAL)
 
         self.action_btns = ttk.Frame(self)
@@ -49,6 +56,16 @@ class VagtListeTab(ttk.Frame):
 
         # Layout
         self.vagtliste_listbox.grid(column=0, row=0, rowspan=2, sticky='nsew')
+
+        self.autofill_all_frm.grid(column=1, row=1, pady=5, padx=5, sticky='nsew')
+        self.autofill_all_frm.grid_propagate(False)
+        self.autofill_all_frm.grid_columnconfigure(0, weight=1)
+        self.autofill_all_frm.grid_rowconfigure(0, weight=1)
+        self.autofill_all_btn.grid(sticky='nsew')
+
+        self.vagtliste_listbox.grid_columnconfigure(0, weight=1)
+        self.vagtliste_listbox.grid_rowconfigure(0, weight=1)
+
         self.vert_sep.grid(column=1, row=0, rowspan=2, sticky='ns', padx=10)
 
         self.ude_label.pack(side='left', padx=5)
@@ -77,6 +94,14 @@ class VagtListeTab(ttk.Frame):
         self.sync_list()
 
     def on_registry_change(self) -> None:
+        self.sync_list()
+
+    def on_autofill_all(self) -> None:
+        old_selected_index = self.selected_index
+        self.registry.vagtlister = []
+        for vagtperiode in self.registry.vagtperioder:
+            self.registry.update_vagtperiode(vagtperiode.id, vagtperiode)
+        self.selected_index = old_selected_index
         self.sync_list()
 
     def make_holmen_table(self) -> ttk.Frame:

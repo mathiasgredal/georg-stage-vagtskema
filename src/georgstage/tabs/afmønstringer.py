@@ -183,13 +183,17 @@ class AfmønstringTab(ttk.Frame):
         self.sync_form()
 
     def update_vls(self) -> None:
-        # Remove all opgaver with the given elev nr in the date interval
+        has_chronological_vagthavende = False
         for afmønstring in self.registry.afmønstringer:
             for vagtliste in self.registry.vagtlister:
                 if not (
                     afmønstring.start_date <= vagtliste.start.date() and vagtliste.end.date() <= afmønstring.end_date
                 ):
                     continue
+
+                if vagtliste.chronological_vagthavende:
+                    has_chronological_vagthavende = True
+                    break
 
                 to_remove: list[tuple[VagtTid, Opgave]] = []
                 for tid, vagt in vagtliste.vagter.items():
@@ -202,6 +206,13 @@ class AfmønstringTab(ttk.Frame):
                     del vagtliste.vagter[tid].opgaver[opg]
 
                 autofill_vagtliste(vagtliste, self.registry)
+
+        # If there is a chronological vagthavende, we cannot do incremental updates
+        if has_chronological_vagthavende:
+            self.registry.vagtlister = []
+            for vagtperiode in self.registry.vagtperioder:
+                self.registry.update_vagtperiode(vagtperiode.id, vagtperiode)
+
         self.registry.notify_update_listeners()
         self.can_update_vls = False
         self.update_vls_btn.pack_forget()

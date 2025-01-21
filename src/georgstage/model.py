@@ -97,9 +97,9 @@ class VagtListe:
     starting_shift: VagtSkifte
     vagter: dict[VagtTid, Vagt]
     chronological_vagthavende: bool = False
-    initial_vagthavende_first_shift: int = 1
-    initial_vagthavende_second_shift: int = 21
-    initial_vagthavende_third_shift: int = 41
+    initial_vagthavende_first_shift: int = 0
+    initial_vagthavende_second_shift: int = 0
+    initial_vagthavende_third_shift: int = 0
 
     def __post_init__(self):
         if isinstance(self.vagttype, str):
@@ -137,20 +137,35 @@ class VagtPeriode:
     note: str
     starting_shift: VagtSkifte
     chronological_vagthavende: bool = False
-    initial_vagthavende_first_shift: int = 1
-    initial_vagthavende_second_shift: int = 21
-    initial_vagthavende_third_shift: int = 41
+    initial_vagthavende_first_shift: int = 0
+    initial_vagthavende_second_shift: int = 0
+    initial_vagthavende_third_shift: int = 0
 
     def __post_init__(self):
-        if self.initial_vagthavende_first_shift < 1 or self.initial_vagthavende_first_shift > 20 or self.initial_vagthavende_first_shift in solver.kabys_elev_nrs:
-            raise ValueError(f'Ugyldig vagthavende nr. fra første skifte: {self.initial_vagthavende_first_shift}')
-    
-        if self.initial_vagthavende_second_shift < 21 or self.initial_vagthavende_second_shift > 40 or self.initial_vagthavende_second_shift in solver.kabys_elev_nrs:
-            raise ValueError(f'Ugyldig vagthavende nr. fra andet skifte: {self.initial_vagthavende_second_shift}')
-        
-        if self.initial_vagthavende_third_shift < 41 or self.initial_vagthavende_third_shift > 60 or self.initial_vagthavende_third_shift in solver.kabys_elev_nrs:
-            raise ValueError(f'Ugyldig vagthavende nr. fra tredje skifte: {self.initial_vagthavende_third_shift}')
-        
+        if not self.initial_vagthavende_first_shift == 0:
+            if (
+                self.initial_vagthavende_first_shift < 1
+                or self.initial_vagthavende_first_shift > 20
+                or self.initial_vagthavende_first_shift in solver.kabys_elev_nrs
+            ):
+                raise ValueError(f'Ugyldig vagthavende nr. fra første skifte: {self.initial_vagthavende_first_shift}')
+
+        if not self.initial_vagthavende_second_shift == 0:
+            if (
+                self.initial_vagthavende_second_shift < 21
+                or self.initial_vagthavende_second_shift > 40
+                or self.initial_vagthavende_second_shift in solver.kabys_elev_nrs
+            ):
+                raise ValueError(f'Ugyldig vagthavende nr. fra andet skifte: {self.initial_vagthavende_second_shift}')
+
+        if not self.initial_vagthavende_third_shift == 0:
+            if (
+                self.initial_vagthavende_third_shift < 41
+                or self.initial_vagthavende_third_shift > 60
+                or self.initial_vagthavende_third_shift in solver.kabys_elev_nrs
+            ):
+                raise ValueError(f'Ugyldig vagthavende nr. fra tredje skifte: {self.initial_vagthavende_third_shift}')
+
         if isinstance(self.vagttype, str):
             self.vagttype = VagtType(self.vagttype)
 
