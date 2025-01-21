@@ -118,7 +118,9 @@ class VagtListeTab(ttk.Frame):
 
         make_cell(table_frame, 0, 0, '', 15, True, self.table_header_var)
 
-        make_cell(table_frame, 1, 0, Opgave.NATTEVAGT.value, 15, True)
+        make_cell(table_frame, 1, 0, Opgave.NATTEVAGT_A.value, 15, True)
+        make_cell(table_frame, 2, 0, Opgave.NATTEVAGT_B.value, 15, True)
+
 
         for index, time in enumerate(holmen_vagt_tider):
             if time == VagtTid.ALL_DAY:
@@ -128,7 +130,7 @@ class VagtListeTab(ttk.Frame):
         for col, time in enumerate(holmen_vagt_tider):
             if time == VagtTid.ALL_DAY:
                 continue
-            for row, opgave in enumerate([Opgave.NATTEVAGT]):
+            for row, opgave in enumerate([Opgave.NATTEVAGT_A, Opgave.NATTEVAGT_B]):
                 self.holmen_vagtliste_var[(time, opgave)] = tk.StringVar()
                 make_cell(
                     table_frame,
@@ -353,7 +355,9 @@ class VagtListeTab(ttk.Frame):
         self.registry.notify_update_listeners()
 
     def sync_list(self) -> None:
-        # Update the listbox
+        if len(self.registry.vagtlister) == 0:
+            return
+        
         self.vagtliste_var.set([vagtliste.to_string() for vagtliste in self.registry.vagtlister])
 
         if self.selected_index >= len(self.registry.vagtlister):
@@ -364,9 +368,6 @@ class VagtListeTab(ttk.Frame):
 
         for i in range(0, len(self.vagtliste_var.get()), 2):  # type: ignore
             self.vagtliste_listbox.itemconfigure(i, background='#f0f0ff')
-
-        if len(self.registry.vagtlister) == 0:
-            return
 
         # Display the correct table
         if self.registry.vagtlister[self.selected_index].vagttype == VagtType.SOEVAGT:
@@ -398,7 +399,7 @@ class VagtListeTab(ttk.Frame):
                 self.søvagt_vagtliste_var[(time, opgave)].set(str(nr))
 
         self.table_header_var.set(
-            f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.start.strftime('%Y-%m-%d')}"
+            f"{selected_vagtliste.vagttype.value}: {selected_vagtliste.get_date().strftime('%Y-%m-%d')}"
         )
 
     def sync_havnevagt_table(self) -> None:

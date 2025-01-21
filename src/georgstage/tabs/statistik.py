@@ -227,7 +227,7 @@ class StatistikTab(ttk.Frame):
                     if opg in [Opgave.LANDGANGSVAGT_A, Opgave.LANDGANGSVAGT_B]:
                         stats[('Landgang (Havn)', elev_nr)] = stats.get(('Landgang (Havn)', elev_nr), 0) + 1
 
-                    if opg == Opgave.NATTEVAGT:
+                    if opg in [Opgave.NATTEVAGT_A, Opgave.NATTEVAGT_B]:
                         stats[('Nattevagt (Holmen)', elev_nr)] = stats.get(('Nattevagt (Holmen)', elev_nr), 0) + 1
 
         # Count HU assignments

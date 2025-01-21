@@ -31,7 +31,8 @@ class Opgave(Enum):
     DAEKSELEV_I_KABYS = 'Dækselev i kabys'
     LANDGANGSVAGT_A = 'Landgangsvagt A'
     LANDGANGSVAGT_B = 'Landgangsvagt B'
-    NATTEVAGT = 'Nattevagt'
+    NATTEVAGT_A = 'Nattevagt A'
+    NATTEVAGT_B = 'Nattevagt B'
     ELEV_VAGTSKIFTE = 'ELEV Vagtskifte'
     HU = 'HU'
 
@@ -96,6 +97,8 @@ class VagtListe:
     note: str
     starting_shift: VagtSkifte
     vagter: dict[VagtTid, Vagt]
+    holmen_double_nattevagt: bool = False
+    holmen_dækselev_i_kabys: bool = False
     chronological_vagthavende: bool = False
     initial_vagthavende_first_shift: int = 0
     initial_vagthavende_second_shift: int = 0
@@ -136,6 +139,8 @@ class VagtPeriode:
     end: datetime
     note: str
     starting_shift: VagtSkifte
+    holmen_double_nattevagt: bool = False
+    holmen_dækselev_i_kabys: bool = False
     chronological_vagthavende: bool = False
     initial_vagthavende_first_shift: int = 0
     initial_vagthavende_second_shift: int = 0
@@ -202,6 +207,8 @@ class VagtPeriode:
                     self.note,
                     self.starting_shift,
                     {},
+                    self.holmen_double_nattevagt,
+                    self.holmen_dækselev_i_kabys,
                     self.chronological_vagthavende,
                     self.initial_vagthavende_first_shift,
                     self.initial_vagthavende_second_shift,
@@ -224,6 +231,8 @@ class VagtPeriode:
                         self.note,
                         VagtSkifte(current_shift),
                         {},
+                        self.holmen_double_nattevagt,
+                        self.holmen_dækselev_i_kabys,
                         self.chronological_vagthavende,
                         self.initial_vagthavende_first_shift,
                         self.initial_vagthavende_second_shift,

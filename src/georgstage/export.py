@@ -226,12 +226,12 @@ class Exporter:
           <td>{self.get_nr(vl, VagtTid.T12_16, Opgave.LANDGANGSVAGT_A)}</td>
           <td>{self.get_nr(vl, VagtTid.T16_18, Opgave.LANDGANGSVAGT_A)}</td>
           <td>{self.get_nr(vl, VagtTid.T18_20, Opgave.LANDGANGSVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T20_22, Opgave.NATTEVAGT)}</td>
-          <td>{self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T22_00, Opgave.NATTEVAGT)}</td>
-          <td>{self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T00_02, Opgave.NATTEVAGT)}</td>
-          <td>{self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T02_04, Opgave.NATTEVAGT)}</td>
-          <td>{self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T04_06, Opgave.NATTEVAGT)}</td>
-          <td>{self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T06_08, Opgave.NATTEVAGT)}</td>
+          <td>{self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T20_22, Opgave.NATTEVAGT_A)}</td>
+          <td>{self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T22_00, Opgave.NATTEVAGT_A)}</td>
+          <td>{self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T00_02, Opgave.NATTEVAGT_A)}</td>
+          <td>{self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T02_04, Opgave.NATTEVAGT_A)}</td>
+          <td>{self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T04_06, Opgave.NATTEVAGT_A)}</td>
+          <td>{self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T06_08, Opgave.NATTEVAGT_A)}</td>
         </tr>
         <tr>
           <td class="tg-label">Udkig / Landgangsvagt</td>
@@ -241,12 +241,12 @@ class Exporter:
           <td>{self.get_nr(vl, VagtTid.T12_16, Opgave.LANDGANGSVAGT_B)}</td>
           <td>{self.get_nr(vl, VagtTid.T16_18, Opgave.LANDGANGSVAGT_B)}</td>
           <td>{self.get_nr(vl, VagtTid.T18_20, Opgave.LANDGANGSVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_B)}</td>
+          <td>{self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T20_22, Opgave.NATTEVAGT_B)}</td>
+          <td>{self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T22_00, Opgave.NATTEVAGT_B)}</td>
+          <td>{self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T00_02, Opgave.NATTEVAGT_B)}</td>
+          <td>{self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T02_04, Opgave.NATTEVAGT_B)}</td>
+          <td>{self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T04_06, Opgave.NATTEVAGT_B)}</td>
+          <td>{self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T06_08, Opgave.NATTEVAGT_B)}</td>
         </tr>
         <tr>
           <td class="tg-label">Pejlegast A/B</td>

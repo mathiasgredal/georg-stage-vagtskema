@@ -1,4 +1,5 @@
 import os
+import sys
 import tkinter as tk
 from tkinter import ttk
 import traceback
@@ -14,7 +15,7 @@ from georgstage.registry import Registry
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox as mb
 from pathlib import Path
-from georgstage.util import Style
+from georgstage.util import Style, osx_set_process_name
 from hashlib import sha256
 
 if os.name == 'nt':
@@ -43,6 +44,8 @@ class App:
         self.exporter = Exporter(self.registry)
 
         self.set_window_title()
+        if sys.platform == 'darwin':
+            osx_set_process_name(b'Georg Stage')
 
         # Make menu
         menu = tk.Menu(self.root)

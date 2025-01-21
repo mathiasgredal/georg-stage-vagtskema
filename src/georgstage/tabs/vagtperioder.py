@@ -17,6 +17,7 @@ class VagtPeriodeTab(ttk.Frame):
 
         # State variables
         self.vagtperiode_type = tk.StringVar()
+        self.vagtperiode_type.trace_add('write', self.on_set_vagtperiode_type)
         self.selected_shift = tk.StringVar()
         self.vagtperioder_var = tk.Variable()
         self.note_var = tk.StringVar()
@@ -25,6 +26,8 @@ class VagtPeriodeTab(ttk.Frame):
         self.initial_vagthavende_first_shift_var = tk.IntVar(value=0)
         self.initial_vagthavende_second_shift_var = tk.IntVar(value=0)
         self.initial_vagthavende_third_shift_var = tk.IntVar(value=0)
+        self.holmen_double_nattevagt_var = tk.IntVar(value=0)
+        self.holmen_dækselev_i_kabys_var = tk.IntVar(value=0)
 
         self.vagtperioder_listbox = tk.Listbox(
             self, listvariable=self.vagtperioder_var, height=15, selectmode=tk.SINGLE, exportselection=False
@@ -63,6 +66,19 @@ class VagtPeriodeTab(ttk.Frame):
 
         self.note_label = ttk.Label(self.vagtperiode_frame, text='Note:')
         self.note_entry = ttk.Entry(self.vagtperiode_frame, textvariable=self.note_var)
+
+
+        self.holmen_double_nattevagt_label = ttk.Checkbutton(
+            self.vagtperiode_frame,
+            text='Holmen: Dobbelt nattevagt',
+            variable=self.holmen_double_nattevagt_var,
+        )
+
+        self.holmen_dækselev_i_kabys_label = ttk.Checkbutton(
+            self.vagtperiode_frame,
+            text='Holmen: Dækselev i kabys',
+            variable=self.holmen_dækselev_i_kabys_var,
+        )
 
         self.vagthavende_label = ttk.Checkbutton(
             self.vagtperiode_frame,
@@ -140,7 +156,15 @@ class VagtPeriodeTab(ttk.Frame):
         self.selected_vp_id = self.registry.vagtperioder[index].id
         self.sync_form()
 
-    def on_check_chronological_vagthavende(self, a, b, c):
+    def on_set_vagtperiode_type(self, *args) -> None:
+        if self.vagtperiode_type.get() == VagtType.HOLMEN.value:
+            self.holmen_double_nattevagt_label.grid(column=0, row=13, sticky='w', padx=10, pady=(5, 0))
+            self.holmen_dækselev_i_kabys_label.grid(column=0, row=14, sticky='w', padx=10, pady=(5, 0))
+        else:
+            self.holmen_double_nattevagt_label.grid_remove()
+            self.holmen_dækselev_i_kabys_label.grid_remove()
+
+    def on_check_chronological_vagthavende(self, *args) -> None:
         if self.chronological_vagthavende_var.get() == 0:
             self.vagthavende_entry_frame.grid_forget()
         else:
@@ -175,6 +199,8 @@ class VagtPeriodeTab(ttk.Frame):
                 break
         self.vagtperiode_type.set(selected_vagtperiode.vagttype.value)
         self.note_var.set(selected_vagtperiode.note)
+        self.holmen_double_nattevagt_var.set(selected_vagtperiode.holmen_double_nattevagt)
+        self.holmen_dækselev_i_kabys_var.set(selected_vagtperiode.holmen_dækselev_i_kabys)
         self.chronological_vagthavende_var.set(selected_vagtperiode.chronological_vagthavende)
         self.initial_vagthavende_first_shift_var.set(selected_vagtperiode.initial_vagthavende_first_shift)
         self.initial_vagthavende_second_shift_var.set(selected_vagtperiode.initial_vagthavende_second_shift)
@@ -191,6 +217,8 @@ class VagtPeriodeTab(ttk.Frame):
             datetime.fromisoformat(self.enddate_var.get()),
             self.note_var.get(),
             self.vagtskifte_opts[self.selected_shift.get()],
+            self.holmen_double_nattevagt_var.get() == 1,
+            self.holmen_dækselev_i_kabys_var.get() == 1,
             self.chronological_vagthavende_var.get() == 1,
             self.initial_vagthavende_first_shift_var.get(),
             self.initial_vagthavende_second_shift_var.get(),
@@ -212,6 +240,8 @@ class VagtPeriodeTab(ttk.Frame):
                 end=next_end_date,
                 note='FRA-TIL',
                 starting_shift=VagtSkifte.SKIFTE_1,
+                holmen_double_nattevagt=False,
+                holmen_dækselev_i_kabys=False,
                 chronological_vagthavende=False,
                 initial_vagthavende_first_shift=0,
                 initial_vagthavende_second_shift=0,

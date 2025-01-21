@@ -24,7 +24,7 @@ class Registry:
         self.vagtperioder = [VagtPeriode(**vp) for vp in data['vagtperioder']]
         self.vagtlister = [VagtListe(**vl) for vl in data['vagtlister']]
         self.afmønstringer = [Afmønstring(**af) for af in data['afmønstringer']]
-        self.hu = [HU(**h) for h in data['hu']]
+        self.hu = [HU(**h) for h in data['hu']] if 'hu' in data else []
         self.notify_update_listeners()
 
     def save_to_string(self) -> str:
@@ -69,6 +69,8 @@ class Registry:
                 vp.end = vagtperiode.end
                 vp.note = vagtperiode.note
                 vp.starting_shift = vagtperiode.starting_shift
+                vp.holmen_double_nattevagt = vagtperiode.holmen_double_nattevagt
+                vp.holmen_dækselev_i_kabys = vagtperiode.holmen_dækselev_i_kabys
                 vp.chronological_vagthavende = vagtperiode.chronological_vagthavende
                 vp.initial_vagthavende_first_shift = vagtperiode.initial_vagthavende_first_shift
                 vp.initial_vagthavende_second_shift = vagtperiode.initial_vagthavende_second_shift
@@ -87,6 +89,8 @@ class Registry:
                     and vl.starting_shift == new_vl.starting_shift
                     and vl.start == new_vl.start
                     and vl.end == new_vl.end
+                    and vl.holmen_double_nattevagt == new_vl.holmen_double_nattevagt
+                    and vl.holmen_dækselev_i_kabys == new_vl.holmen_dækselev_i_kabys
                     and vl.chronological_vagthavende == new_vl.chronological_vagthavende
                     and vl.initial_vagthavende_first_shift == new_vl.initial_vagthavende_first_shift
                     and vl.initial_vagthavende_second_shift == new_vl.initial_vagthavende_second_shift

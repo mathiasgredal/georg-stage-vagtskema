@@ -109,3 +109,27 @@ def make_cell(
         entry1.configure(state='disabled')
         entry1.configure(disabledbackground=bg_color, disabledforeground=fg_color)
     entry1.grid(row=row, column=col + 2, **kw)
+
+def osx_set_process_name(app_title) -> bool:
+    """Change OSX application title """
+
+    from ctypes import cdll, c_int, pointer, Structure
+    from ctypes.util import find_library
+
+    app_services = cdll.LoadLibrary(find_library("ApplicationServices"))
+
+    if app_services.CGMainDisplayID() == 0:
+        print("cannot run without OS X window manager")
+    else:
+        class ProcessSerialNumber(Structure):
+            _fields_ = [("highLongOfPSN", c_int),
+                        ("lowLongOfPSN", c_int)]
+        psn = ProcessSerialNumber()
+        psn_p = pointer(psn)
+        if (  (app_services.GetCurrentProcess(psn_p) < 0) or
+              (app_services.SetFrontProcess(psn_p) < 0) ):
+           print("cannot run without OS X gui process")
+
+        app_services.CPSSetProcessName(psn_p, app_title)
+
+    return False

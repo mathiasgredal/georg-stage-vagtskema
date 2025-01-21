@@ -477,7 +477,8 @@ def count_vagt_stats(all_vls: list[VagtListe]) -> dict[tuple[Opgave, int], int]:
     for vagtliste in all_vls:
         for _, vagt_col in vagtliste.vagter.items():
             for opg, elev_nr in vagt_col.opgaver.items():
-                vagt_stats[(opg, elev_nr)] += 1
+                merge_opg = Opgave.NATTEVAGT_A if opg == Opgave.NATTEVAGT_B else opg
+                vagt_stats[(merge_opg, elev_nr)] += 1
 
     return vagt_stats
 
@@ -677,15 +678,17 @@ def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[
     unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.VAGTHAVENDE_ELEV])
 
     # Pick dækselev
-    if not Opgave.DAEKSELEV_I_KABYS in vl.vagter[VagtTid.ALL_DAY].opgaver:
-        vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
-            unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
-        )
-    unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS])
+    if vl.holmen_dækselev_i_kabys:
+        if not Opgave.DAEKSELEV_I_KABYS in vl.vagter[VagtTid.ALL_DAY].opgaver:
+            vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
+                unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
+            )
+        unavailable_numbers.append(vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS])
 
-    # Pick landgangsvagter
+    # Pick nattevagter
     holmen_vagt_tider = generate_holmen_vagttider(vl.start, vl.end)
     scratch_solve = True
+    assigned_nattevagter: list[int] = []
     for tid in holmen_vagt_tider:
         if tid == VagtTid.ALL_DAY:
             continue
@@ -694,23 +697,34 @@ def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[
         if scratch_solve and vl.vagter[tid].opgaver != {}:
             scratch_solve = False
 
-        if not Opgave.NATTEVAGT in vl.vagter[tid].opgaver:
-            vl.vagter[tid].opgaver[Opgave.NATTEVAGT] = pick_least(
-                unavailable_numbers, filter_by_opgave(Opgave.NATTEVAGT, skifte_stats)
+        if not Opgave.NATTEVAGT_A in vl.vagter[tid].opgaver:
+            vl.vagter[tid].opgaver[Opgave.NATTEVAGT_A] = pick_least(
+                [*unavailable_numbers, *assigned_nattevagter], filter_by_opgave(Opgave.NATTEVAGT_A, skifte_stats)
             )
-        skifte_stats[(Opgave.NATTEVAGT, vl.vagter[tid].opgaver[Opgave.NATTEVAGT])] += 10
+            assigned_nattevagter.append(vl.vagter[tid].opgaver[Opgave.NATTEVAGT_A])
+
+        if vl.holmen_double_nattevagt:
+            if not Opgave.NATTEVAGT_B in vl.vagter[tid].opgaver:
+                vl.vagter[tid].opgaver[Opgave.NATTEVAGT_B] = pick_least(
+                    [*unavailable_numbers, *assigned_nattevagter], filter_by_opgave(Opgave.NATTEVAGT_A, skifte_stats)
+                )
+                assigned_nattevagter.append(vl.vagter[tid].opgaver[Opgave.NATTEVAGT_B])
 
     if scratch_solve:
         time_53, opg_53 = None, None
 
         for tid, vagt in vl.vagter.items():
-            if Opgave.NATTEVAGT in vagt.opgaver and vagt.opgaver[Opgave.NATTEVAGT] == 53:
-                time_53, opg_53 = tid, Opgave.NATTEVAGT
+            if Opgave.NATTEVAGT_A in vagt.opgaver and vagt.opgaver[Opgave.NATTEVAGT_A] == 53:
+                time_53, opg_53 = tid, Opgave.NATTEVAGT_A
+                break
+            if Opgave.NATTEVAGT_B in vagt.opgaver and vagt.opgaver[Opgave.NATTEVAGT_B] == 53:
+                time_53, opg_53 = tid, Opgave.NATTEVAGT_B
                 break
 
         if time_53 is not None and time_53 != VagtTid.T04_06 and opg_53 is not None and VagtTid.T04_06 in vl.vagter:
-            vl.vagter[time_53].opgaver[opg_53], vl.vagter[VagtTid.T04_06].opgaver[Opgave.NATTEVAGT] = (
-                vl.vagter[VagtTid.T04_06].opgaver[Opgave.NATTEVAGT],
+            vagt = random.choice([Opgave.NATTEVAGT_A, Opgave.NATTEVAGT_B])
+            vl.vagter[time_53].opgaver[opg_53], vl.vagter[VagtTid.T04_06].opgaver[vagt] = (
+                vl.vagter[VagtTid.T04_06].opgaver[vagt],
                 vl.vagter[time_53].opgaver[opg_53],
             )
 
