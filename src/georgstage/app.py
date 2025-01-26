@@ -39,8 +39,12 @@ class App:
             extends='TButton',
         )
 
-        logo = tk.PhotoImage(data=ICON_DATA)
-        self.root.iconphoto(True, logo)
+        try:
+            logo = tk.PhotoImage(data=ICON_DATA)
+            self.root.iconphoto(True, logo)
+        except Exception:
+            print('Failed to load icon')
+            pass
 
         self.tab_control = ttk.Notebook(self.root)
         self.registry = Registry()

@@ -1,2 +1,33 @@
 #!/bin/sh
-python3 "$(dirname "$0")/src"
+
+# Define supported Python versions in one place for easier maintenance
+VERSIONS="python3.13 python3.12 python3.11 python3.10 python3.9 python3.8 python3 python"
+
+# Try each version in order
+for version in $VERSIONS; do
+    if command -v "$version" >/dev/null 2>&1; then
+        "$version" src
+        exit 0
+    fi
+done
+
+# If we get here, no Python version worked
+echo "No supported Python version (3.8-3.13) was found on your system."
+echo
+echo "To install Python:"
+echo "1. Open your terminal"
+echo "2. Use your system's package manager to install Python"
+echo
+echo "For Ubuntu/Debian:"
+echo "    sudo apt update"
+echo "    sudo apt install python3"
+echo
+echo "For macOS (using Homebrew):"
+echo "    brew install python"
+echo
+echo "Alternatively, you can download Python from:"
+echo "https://www.python.org/downloads/"
+echo
+printf "Press Enter to continue..."
+read dummy
+exit 1
