@@ -1,6 +1,6 @@
 # Georg Stage Vagtplanlægger
 
-Dette er et hjælpeprogram til vagtplanlægning ombord på Georg Stage. Programmet skemalægger ca. 27.000 timers arbejde på et togt, der finder sted to gange om året. Det er tilgængeligt for både Windows og MacOS, hvilket gør det nemt at tilgå for alle brugere. Programmet anvendes primært af 2. kvartermester, som har brug for at planlægge vagtplanlægningen effektivt.
+Dette er et hjælpeprogram til vagtplanlægning ombord på Georg Stage. Programmet skemalægger ca. 27.000 timers arbejde på et togt, der finder sted to gange om året. Det er tilgængeligt for både Windows og MacOS, hvilket gør det nemt at tilgå for alle brugere. Programmet anvendes primært af 2. kvartermester, som har brug for at udføre vagtplanlægningen effektivt.
 
 ## Skærmbilleder
 |<img width="962" src="https://github.com/user-attachments/assets/2d06c3b6-bbb0-45af-85e9-9b73ead010b7" />|<img width="962" src="https://github.com/user-attachments/assets/34b60abd-7d83-4187-87f8-007574fb576c" />|
