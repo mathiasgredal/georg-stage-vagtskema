@@ -765,7 +765,7 @@ def autofill_holmen_vagtliste(vl: VagtListe, registry: 'Registry', ude_nr: list[
                 break
 
         if time_53 is not None and time_53 != VagtTid.T04_06 and opg_53 is not None and VagtTid.T04_06 in vl.vagter:
-            vagt = random.choice([Opgave.NATTEVAGT_A, Opgave.NATTEVAGT_B])
+            vagt = random.choice([Opgave.NATTEVAGT_A, Opgave.NATTEVAGT_B]) if vl.holmen_double_nattevagt else Opgave.NATTEVAGT_A
             vl.vagter[time_53].opgaver[opg_53], vl.vagter[VagtTid.T04_06].opgaver[vagt] = (
                 vl.vagter[VagtTid.T04_06].opgaver[vagt],
                 vl.vagter[time_53].opgaver[opg_53],

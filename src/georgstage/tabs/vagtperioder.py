@@ -209,6 +209,9 @@ class VagtPeriodeTab(ttk.Frame):
         if len(self.registry.vagtperioder) == 0:
             return
 
+        if self.startdate_var.get() > self.enddate_var.get():
+            raise ValueError('Start dato skal være før slut dato')
+
         new_vagtperiode = VagtPeriode(
             self.selected_vp_id,
             VagtType(self.vagtperiode_type.get()),
