@@ -1,13 +1,30 @@
-from datetime import datetime, timedelta, date
-from enum import Enum, unique
+"""Georgstage model"""
 
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+from enum import Enum, unique
+from typing import Any
 from uuid import UUID, uuid4
 
-from georgstage import solver
+kabys_elev_nrs = [0, 9, 61, 62, 63]
 
 
-def next_datetime(current: datetime, hour: int, **kwargs) -> datetime:
+def next_datetime(current: datetime, hour: int, **kwargs: Any) -> datetime:
+    """Calculate the next datetime that occurs after the specified hour on the following day.
+
+    This function takes a current datetime and an hour, and returns a new datetime
+    object that represents the next occurrence of that hour. If the specified hour
+    is already passed for the current day, the function will return the hour for the
+    next day.
+
+    Args:
+        current (datetime): The current datetime from which to calculate the next occurrence.
+        hour (int): The hour (0-23) for which to find the next datetime.
+        **kwargs: Additional keyword arguments to pass to the `replace` method of the datetime.
+
+    Returns:
+        datetime: A datetime object representing the next occurrence of the specified hour.
+    """
     repl = current.replace(hour=hour, **kwargs)
     while repl <= current:
         repl = repl + timedelta(days=1)
@@ -16,6 +33,14 @@ def next_datetime(current: datetime, hour: int, **kwargs) -> datetime:
 
 @unique
 class Opgave(Enum):
+    """Enumeration of tasks (opgaver) associated with the vagtliste (duty roster).
+
+    Each task represents a specific role or responsibility that can be assigned
+    to individuals during their shifts. The tasks include various types of
+    watchkeeping and support roles, ensuring a comprehensive coverage of
+    duties required during the operation.
+    """
+
     VAGTHAVENDE_ELEV = 'Vagthavende ELEV'
     ORDONNANS = 'Ordonnans'
     UDKIG = 'Udkig'
@@ -39,13 +64,31 @@ class Opgave(Enum):
 
 @unique
 class VagtType(Enum):
+    """Enumeration of different types of vagtliste (duty roster).
+
+    This enumeration defines the various types of duty roster that can be used
+    in the system. Each type represents a specific pattern or structure of
+    duty assignments, which can be used to categorize and organize the vagtliste
+    according to the operational requirements and scheduling preferences.
+    """
+
     SOEVAGT = 'Søvagt'
     HAVNEVAGT = 'Havn'
     HOLMEN = 'Holmen'
+    HOLMEN_WEEKEND = 'Weekend'
 
 
 @unique
 class VagtSkifte(Enum):
+    """Enumeration of shift changes (vagt skifte) for duty rosters.
+
+    This enumeration defines the different types of shift changes that can occur
+    within the duty roster system. Each shift change represents a specific
+    assignment or transition between different roles during the operational period.
+    The defined shifts help in organizing and managing the personnel assignments
+    effectively, ensuring that all necessary roles are covered during each shift.
+    """
+
     SKIFTE_1 = 1
     SKIFTE_2 = 2
     SKIFTE_3 = 3
@@ -53,6 +96,8 @@ class VagtSkifte(Enum):
 
 @unique
 class VagtTid(Enum):
+    """Enumeration of different times of day (vagt tid) for duty rosters."""
+
     ALL_DAY = 'ALL_DAY'
 
     # Søvagt
@@ -77,18 +122,24 @@ class VagtTid(Enum):
 
 @dataclass
 class Vagt:
+    """A class representing a duty roster (vagt) for a specific time period."""
+
     vagt_skifte: VagtSkifte
     opgaver: dict[Opgave, int]
 
 
 @dataclass
 class HU:
+    """A class representing a HU (HU) for a specific time period."""
+
     start_date: date
     assigned: list[int]
 
 
 @dataclass
 class VagtListe:
+    """A class representing a duty roster (vagtliste) for a specific time period."""
+
     id: UUID
     vagtperiode_id: UUID
     vagttype: VagtType
@@ -104,7 +155,7 @@ class VagtListe:
     initial_vagthavende_second_shift: int = 0
     initial_vagthavende_third_shift: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.vagttype, str):
             self.vagttype = VagtType(self.vagttype)
 
@@ -122,9 +173,16 @@ class VagtListe:
             )
 
     def get_date(self) -> date:
+        """Retrieve the effective date of the duty roster (vagtliste).
+
+        The effective date is determined based on the start time of the roster.
+        If the start time is 8 AM or later, the date corresponds to the start date.
+        If the start time is before 8 AM, the date is adjusted to the previous day.
+        """
         return self.start.date() if self.start.hour >= 8 else (self.start - timedelta(days=1)).date()
 
     def to_string(self) -> str:
+        """Convert the vagtliste to a string."""
         if self.vagttype == VagtType.SOEVAGT:
             return f'{self.vagttype.value}: {self.get_date().strftime("%Y-%m-%d")}'
         else:
@@ -133,6 +191,8 @@ class VagtListe:
 
 @dataclass
 class VagtPeriode:
+    """A class representing a period of duty rosters (vagtperiode)."""
+
     id: UUID
     vagttype: VagtType
     start: datetime
@@ -146,12 +206,12 @@ class VagtPeriode:
     initial_vagthavende_second_shift: int = 0
     initial_vagthavende_third_shift: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.initial_vagthavende_first_shift == 0:
             if (
                 self.initial_vagthavende_first_shift < 1
                 or self.initial_vagthavende_first_shift > 20
-                or self.initial_vagthavende_first_shift in solver.kabys_elev_nrs
+                or self.initial_vagthavende_first_shift in kabys_elev_nrs
             ):
                 raise ValueError(f'Ugyldig vagthavende nr. fra første skifte: {self.initial_vagthavende_first_shift}')
 
@@ -159,7 +219,7 @@ class VagtPeriode:
             if (
                 self.initial_vagthavende_second_shift < 21
                 or self.initial_vagthavende_second_shift > 40
-                or self.initial_vagthavende_second_shift in solver.kabys_elev_nrs
+                or self.initial_vagthavende_second_shift in kabys_elev_nrs
             ):
                 raise ValueError(f'Ugyldig vagthavende nr. fra andet skifte: {self.initial_vagthavende_second_shift}')
 
@@ -167,7 +227,7 @@ class VagtPeriode:
             if (
                 self.initial_vagthavende_third_shift < 41
                 or self.initial_vagthavende_third_shift > 60
-                or self.initial_vagthavende_third_shift in solver.kabys_elev_nrs
+                or self.initial_vagthavende_third_shift in kabys_elev_nrs
             ):
                 raise ValueError(f'Ugyldig vagthavende nr. fra tredje skifte: {self.initial_vagthavende_third_shift}')
 
@@ -178,9 +238,16 @@ class VagtPeriode:
             self.starting_shift = VagtSkifte(self.starting_shift)
 
     def to_string(self) -> str:
-        return f'{self.vagttype.value}: {self.start.strftime("%Y-%m-%d %H:%M")} - {self.end.strftime("%Y-%m-%d %H:%M")} [{self.starting_shift.value}#] ({self.note})'
+        """Convert the vagtperiode to a string."""
+        return f'{self.vagttype.value}: {self.start.strftime("%Y-%m-%d %H:%M")} - {self.end.strftime("%Y-%m-%d %H:%M")} [{self.starting_shift.value}#] ({self.note})'  # noqa: E501
 
     def get_vagtliste_stubs(self) -> list[VagtListe]:
+        """Generate a list of vagtliste stubs for the vagtperiode.
+
+        This method creates a list of VagtListe objects that represent the duty rosters
+        for each day in the specified period. It takes into account the type of vagt
+        (e.g., Søvagt, Havn, Holmen, Weekend) and the starting shift for each day.
+        """
         vagtliste_dates = []
         current = self.start
         while next_datetime(current, hour=8, minute=0) < self.end:
@@ -216,7 +283,11 @@ class VagtPeriode:
                 )
                 for date in vagtliste_dates
             ]
-        elif self.vagttype == VagtType.HAVNEVAGT or self.vagttype == VagtType.HOLMEN:
+        elif (
+            self.vagttype == VagtType.HAVNEVAGT
+            or self.vagttype == VagtType.HOLMEN
+            or self.vagttype == VagtType.HOLMEN_WEEKEND
+        ):
             # Each day has a different starting shift, rotating through the shifts
             current_shift = self.starting_shift.value
             result = []
@@ -239,7 +310,8 @@ class VagtPeriode:
                         self.initial_vagthavende_third_shift,
                     )
                 )
-                current_shift = (current_shift % 3) + 1
+                if self.vagttype != VagtType.HOLMEN_WEEKEND:
+                    current_shift = (current_shift % 3) + 1
             return result
         else:
             raise ValueError(f'Unimplemented VagtType: {self.vagttype}')
@@ -247,6 +319,8 @@ class VagtPeriode:
 
 @dataclass
 class Afmønstring:
+    """A class representing an afmønstring (duty roster de-enrollment)."""
+
     id: UUID
     elev_nr: int
     name: str
@@ -254,4 +328,5 @@ class Afmønstring:
     end_date: date
 
     def to_string(self) -> str:
-        return f'{self.name}[nr. {self.elev_nr}]:  {self.start_date.strftime("%Y-%m-%d")} - {self.end_date.strftime("%Y-%m-%d")}'
+        """Convert the afmønstring to a string."""
+        return f'{self.name}[nr. {self.elev_nr}]:  {self.start_date.strftime("%Y-%m-%d")} - {self.end_date.strftime("%Y-%m-%d")}'  # noqa: E501

@@ -1,16 +1,19 @@
+"""Tab for managing vagtperioder"""
+
 import tkinter as tk
 from datetime import datetime, timedelta
 from tkinter import ttk
-from typing import Optional
-
-from georgstage.model import VagtPeriode, VagtType, VagtSkifte
-from georgstage.registry import Registry
+from typing import Any, Optional
 from uuid import UUID, uuid4
 
+from georgstage.model import VagtPeriode, VagtSkifte, VagtType
+from georgstage.registry import Registry
 from georgstage.util import make_cell
 
 
 class VagtPeriodeTab(ttk.Frame):
+    """Tab for managing vagtperioder"""
+
     def __init__(self, parent: tk.Misc, registry: Registry) -> None:
         ttk.Frame.__init__(self, parent, padding=(5, 5, 12, 5))
         self.registry = registry
@@ -45,6 +48,9 @@ class VagtPeriodeTab(ttk.Frame):
         )
         self.type_opt3 = ttk.Radiobutton(
             self.vagtperiode_frame, text='Holmen', variable=self.vagtperiode_type, value=VagtType.HOLMEN.value
+        )
+        self.type_opt4 = ttk.Radiobutton(
+            self.vagtperiode_frame, text='Weekend', variable=self.vagtperiode_type, value=VagtType.HOLMEN_WEEKEND.value
         )
 
         self.startdate_label = ttk.Label(self.vagtperiode_frame, text='Start:')
@@ -111,21 +117,22 @@ class VagtPeriodeTab(ttk.Frame):
         self.type_opt1.grid(column=0, row=1, sticky='w', padx=20)
         self.type_opt2.grid(column=0, row=2, sticky='w', padx=20)
         self.type_opt3.grid(column=0, row=4, sticky='w', padx=20)
+        self.type_opt4.grid(column=0, row=5, sticky='w', padx=20)
 
-        self.startdate_label.grid(column=0, row=5, sticky='w', padx=10, pady=(5, 0))
-        self.startdate_entry.grid(column=0, row=6, sticky='w', padx=20)
+        self.startdate_label.grid(column=0, row=6, sticky='w', padx=10, pady=(5, 0))
+        self.startdate_entry.grid(column=0, row=7, sticky='w', padx=20)
 
-        self.enddate_label.grid(column=0, row=7, sticky='w', padx=10, pady=(5, 0))
-        self.enddate_entry.grid(column=0, row=8, sticky='w', padx=20)
+        self.enddate_label.grid(column=0, row=8, sticky='w', padx=10, pady=(5, 0))
+        self.enddate_entry.grid(column=0, row=9, sticky='w', padx=20)
 
-        self.vagtskifte_label.grid(column=0, row=9, sticky='w', padx=10, pady=(5, 0))
-        self.vagtskifte_entry.grid(column=0, row=10, sticky='w', padx=20, pady=2.5)
+        self.vagtskifte_label.grid(column=0, row=10, sticky='w', padx=10, pady=(5, 0))
+        self.vagtskifte_entry.grid(column=0, row=11, sticky='w', padx=20, pady=2.5)
 
-        self.note_label.grid(column=0, row=11, sticky='w', padx=10, pady=(5, 0))
-        self.note_entry.grid(column=0, row=12, sticky='w', padx=20)
+        self.note_label.grid(column=0, row=12, sticky='w', padx=10, pady=(5, 0))
+        self.note_entry.grid(column=0, row=13, sticky='w', padx=20)
 
-        self.vagthavende_label.grid(column=0, row=15, sticky='w', padx=10, pady=(5, 0))
-        self.vagthavende_entry_frame.grid(column=0, row=16, sticky='w', padx=20)
+        self.vagthavende_label.grid(column=0, row=16, sticky='w', padx=10, pady=(5, 0))
+        self.vagthavende_entry_frame.grid(column=0, row=17, sticky='w', padx=20)
 
         self.send_btn.grid(column=1, row=1, sticky=tk.E)
         self.add_remove_frame.grid(column=0, row=1, pady=(5, 0), sticky='we')
@@ -148,6 +155,7 @@ class VagtPeriodeTab(ttk.Frame):
         self.registry.register_update_listener(self.on_update_registry)
 
     def on_select_period(self, event: tk.Event) -> None:  # type: ignore
+        """Select the period and sync the form"""
         w = event.widget
         if len(w.curselection()) == 0:
             return
@@ -155,21 +163,24 @@ class VagtPeriodeTab(ttk.Frame):
         self.selected_vp_id = self.registry.vagtperioder[index].id
         self.sync_form()
 
-    def on_set_vagtperiode_type(self, *args) -> None:
-        if self.vagtperiode_type.get() == VagtType.HOLMEN.value:
-            self.holmen_double_nattevagt_label.grid(column=0, row=13, sticky='w', padx=10, pady=(5, 0))
-            self.holmen_dækselev_i_kabys_label.grid(column=0, row=14, sticky='w', padx=10, pady=(5, 0))
+    def on_set_vagtperiode_type(self, *args: Any) -> None:
+        """Set the vagtperiode type and sync the form"""
+        if self.vagtperiode_type.get() in [VagtType.HOLMEN.value, VagtType.HOLMEN_WEEKEND.value]:
+            self.holmen_double_nattevagt_label.grid(column=0, row=14, sticky='w', padx=10, pady=(5, 0))
+            self.holmen_dækselev_i_kabys_label.grid(column=0, row=15, sticky='w', padx=10, pady=(5, 0))
         else:
             self.holmen_double_nattevagt_label.grid_remove()
             self.holmen_dækselev_i_kabys_label.grid_remove()
 
-    def on_check_chronological_vagthavende(self, *args) -> None:
+    def on_check_chronological_vagthavende(self, *args: Any) -> None:
+        """Check if the vagthavende is chronological and sync the form"""
         if self.chronological_vagthavende_var.get() == 0:
             self.vagthavende_entry_frame.grid_forget()
         else:
             self.vagthavende_entry_frame.grid()
 
     def sync_list(self) -> None:
+        """Sync the list with the registry"""
         self.vagtperioder_var.set([vagtperiode.to_string() for vagtperiode in self.registry.vagtperioder])
         self.vagtperioder_listbox.select_clear(0, tk.END)
         selected_index = self._get_vp_index(self.selected_vp_id)
@@ -206,11 +217,15 @@ class VagtPeriodeTab(ttk.Frame):
         self.initial_vagthavende_third_shift_var.set(selected_vagtperiode.initial_vagthavende_third_shift)
 
     def save_action(self) -> None:
+        """Save the current item and sync the list and form"""
         if len(self.registry.vagtperioder) == 0:
             return
 
         if self.startdate_var.get() > self.enddate_var.get():
             raise ValueError('Start dato skal være før slut dato')
+
+        if self.selected_vp_id is None:
+            raise ValueError('Ingen vagtperiode valgt')
 
         new_vagtperiode = VagtPeriode(
             self.selected_vp_id,
@@ -231,6 +246,7 @@ class VagtPeriodeTab(ttk.Frame):
         self.sync_list()
 
     def add_item(self) -> None:
+        """Add a new item to the registry and sync the list and form"""
         last_vp = self.registry.vagtperioder[-1] if len(self.registry.vagtperioder) > 0 else None
         next_start_date = last_vp.end if last_vp is not None else datetime.now().replace(minute=0)
         next_end_date = next_start_date + timedelta(days=2)
@@ -255,10 +271,19 @@ class VagtPeriodeTab(ttk.Frame):
         self.sync_list()
 
     def remove_item(self) -> None:
+        """Remove the selected item from the registry and sync the list and form"""
         if len(self.registry.vagtperioder) == 0:
             return
 
-        self.registry.remove_vagtperiode(self.registry.get_vagtperiode_by_id(self.selected_vp_id))
+        if self.selected_vp_id is None:
+            raise ValueError('Ingen vagtperiode valgt')
+
+        vagtperiode = self.registry.get_vagtperiode_by_id(self.selected_vp_id)
+
+        if vagtperiode is None:
+            raise ValueError('Vagtperiode ikke fundet')
+
+        self.registry.remove_vagtperiode(vagtperiode)
 
         self.selected_vp_id = self.registry.vagtperioder[-1].id if len(self.registry.vagtperioder) > 0 else None
 
@@ -275,5 +300,6 @@ class VagtPeriodeTab(ttk.Frame):
         return None
 
     def on_update_registry(self) -> None:
+        """Update the registry and sync the list and form"""
         self.sync_list()
         self.sync_form()

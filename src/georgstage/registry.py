@@ -1,13 +1,15 @@
 """This module contains the registry, responsible for loading and storing data"""
 
 import collections
-from typing import Optional
-from georgstage.model import VagtListe, VagtPeriode, Afmønstring, HU
-from georgstage.solver import autofill_vagtliste
-from uuid import UUID
-from georgstage.util import EnhancedJSONDecoder, EnhancedJSONEncoder
 import json
+import logging
 import pathlib
+from typing import Callable, Optional
+from uuid import UUID
+
+from georgstage.model import HU, Afmønstring, VagtListe, VagtPeriode
+from georgstage.solver import autofill_vagtliste
+from georgstage.util import EnhancedJSONDecoder, EnhancedJSONEncoder
 
 
 class Registry:
@@ -17,9 +19,9 @@ class Registry:
     vagtlister: list[VagtListe] = []
     afmønstringer: list[Afmønstring] = []
     hu: list[HU] = []
-    event_listeners: list[callable] = []
-    versions = collections.deque(maxlen=50)
-    redo_stack = collections.deque(maxlen=50)
+    event_listeners: list[Callable[[], None]] = []
+    versions: collections.deque[str] = collections.deque(maxlen=50)
+    redo_stack: collections.deque[str] = collections.deque(maxlen=50)
 
     def load_from_string(self, data_str: str) -> None:
         """Load the registry from a string"""
@@ -30,11 +32,12 @@ class Registry:
         self.hu = [HU(**h) for h in data['hu']] if 'hu' in data else []
         self.notify_update_listeners(pure_update=True)
 
-    def load_from_file(self, filename: str) -> None:
+    def load_from_file(self, filename: pathlib.Path) -> None:
         """Load the registry from a file"""
         self.load_from_string(pathlib.Path(filename).read_text())
 
     def save_to_string(self) -> str:
+        """Save the registry to a string"""
         data = {
             'vagtperioder': self.vagtperioder,
             'vagtlister': self.vagtlister,
@@ -43,11 +46,12 @@ class Registry:
         }
         return json.dumps(data, cls=EnhancedJSONEncoder, ensure_ascii=False, indent=4)
 
-    def save_to_file(self, filename: str) -> None:
+    def save_to_file(self, filename: pathlib.Path) -> None:
         """Save the registry to a file"""
         pathlib.Path(filename).write_text(self.save_to_string())
 
     def get_vagtperiode_by_id(self, id: UUID) -> Optional[VagtPeriode]:
+        """Get a vagtperiode by id"""
         for vp in self.vagtperioder:
             if vp.id == id:
                 return vp
@@ -60,7 +64,7 @@ class Registry:
         for new_vl in new_vl_stubs:
             error = autofill_vagtliste(new_vl, self)
             if error is not None:
-                print(error)
+                logging.error(error)
             self.vagtlister.append(new_vl)
         self.vagtlister.sort(key=lambda vl: vl.start)
         self.notify_update_listeners()
@@ -119,7 +123,7 @@ class Registry:
                 continue
             error = autofill_vagtliste(new_vl, self)
             if error is not None:
-                print(error)
+                logging.error(error)
             self.vagtlister.append(new_vl)
         self.vagtlister.sort(key=lambda vl: vl.start)
 
@@ -134,21 +138,25 @@ class Registry:
         self.notify_update_listeners()
 
     def get_afmønstring_by_id(self, id: UUID) -> Optional[Afmønstring]:
+        """Get an afmønstring by id"""
         for afmønstring in self.afmønstringer:
             if afmønstring.id == id:
                 return afmønstring
         return None
 
-    def register_update_listener(self, listener) -> None:
+    def register_update_listener(self, listener: Callable[[], None]) -> None:
+        """Register an update listener"""
         self.event_listeners.append(listener)
 
     def undo_last_update(self) -> None:
+        """Undo the last update"""
         if len(self.versions) <= 1:
             return
         self.redo_stack.append(self.versions.pop())
         self.load_from_string(self.versions[-1])
 
     def redo_last_update(self) -> None:
+        """Redo the last update"""
         if len(self.redo_stack) == 0:
             return
         last_version = self.redo_stack.pop()
@@ -156,6 +164,7 @@ class Registry:
         self.load_from_string(last_version)
 
     def notify_update_listeners(self, pure_update: bool = False) -> None:
+        """Notify update listeners"""
         version = self.save_to_string()
         if not pure_update and len(self.versions) == 0 or len(self.versions) > 0 and version != self.versions[-1]:
             self.versions.append(version)

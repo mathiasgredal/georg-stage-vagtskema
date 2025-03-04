@@ -1,17 +1,40 @@
+"""Util functions"""
+
 import dataclasses
-import json
 import datetime
+import enum
+import json
+import logging
 import sys
 import tkinter as tk
-from tkinter import ttk, font
-import enum
-from typing import Optional
 import uuid
+from tkinter import font, ttk
+from typing import Any, Optional, Union
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if dataclasses.is_dataclass(obj):
+    """A JSON encoder that supports encoding of dataclasses, datetime objects, UUIDs, and enum members.
+
+    This encoder extends the standard JSONEncoder to handle additional Python data types that are not natively
+    serializable by the default encoder. It converts dataclass instances to dictionaries, formats datetime objects
+    to ISO 8601 strings, converts UUIDs to their string representation, and encodes enum members by their values.
+    """
+
+    def default(self, obj: Any) -> Any:
+        """Convert a Python object to a JSON-serializable format.
+
+        This method is called by the JSON encoder when it encounters an object
+        that is not natively serializable. It handles dataclass instances,
+        datetime objects, UUIDs, and enum members by converting them to
+        appropriate JSON-compatible representations.
+
+        Args:
+            obj: The object to be encoded.
+
+        Returns:
+            The JSON-serializable representation of the object.
+        """
+        if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
             return dataclasses.asdict(obj)
         if isinstance(obj, (datetime.date, datetime.datetime)):
             return obj.isoformat()
@@ -21,10 +44,23 @@ class EnhancedJSONEncoder(json.JSONEncoder):
             return obj.value
         return super().default(obj)
 
-    def encode(self, obj):
+    def encode(self, obj: Any) -> str:
+        """Encode a Python object to a JSON string.
+
+        This method encodes the object using the EnhancedJSONEncoder and
+        ensures that all dataclass instances, datetime objects, UUIDs,
+        and enum members are properly converted to their JSON-compatible
+        representations.
+        """
         return super().encode(self.valuify_dict(obj))
 
-    def valuify_dict(self, obj):
+    def valuify_dict(self, obj: Any) -> Any:
+        """Convert a Python object to a dictionary of values.
+
+        This method recursively converts dataclass instances, lists,
+        dictionaries, and enum members to their JSON-compatible
+        representations.
+        """
         if dataclasses.is_dataclass(obj):
             new_obj = {}
             for field in dataclasses.fields(obj):
@@ -47,11 +83,23 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 
 
 class EnhancedJSONDecoder(json.JSONDecoder):
-    def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
+    """A JSON decoder that supports decoding of JSON strings into Python objects.
 
-    def object_hook(self, obj):
-        ret = {}
+    This decoder extends the standard JSONDecoder to handle additional JSON-compatible
+    representations of Python data types. It converts ISO 8601 strings to datetime objects,
+    and UUID strings to their UUID representation.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)  # noqa: B026
+
+    def object_hook(self, obj: Any) -> Any:
+        """Convert a JSON object to a Python object.
+
+        This method is called by the JSON decoder when it encounters a JSON object.
+        It converts ISO 8601 strings to datetime objects, and UUID strings to their UUID representation.
+        """
+        ret: dict[str, Any] = {}
         # TODO: Move this into the post_init method of each dataclass
         for key, value in obj.items():
             if key in {'start', 'end'}:
@@ -66,19 +114,34 @@ class EnhancedJSONDecoder(json.JSONDecoder):
 
 
 class Style(ttk.Style):
+    """A style manager for ttk widgets.
+
+    This class extends the ttk.Style class to provide a more flexible and
+    user-friendly way to customize the appearance and behavior of ttk widgets.
+    It allows for easy configuration of widget styles, including the ability to
+    extend existing styles and apply customizations.
+    """
+
     EXTENDS = 'extends'
 
-    def __init__(self, parent):
+    def __init__(self, parent: tk.Misc) -> None:
         super().__init__(parent)
-        self._style = {}
+        self._style: dict[Any, Any] = {}
 
-    def configure(self, cls, **kwargs):
-        self._style.setdefault(cls, {}).update(kwargs)
+    def configure(self, style: Any, query_opt: Any | None = ..., **kwargs: Any) -> Any:
+        """Configure a widget style.
+
+        This method allows for the configuration of widget styles by setting
+        specific properties and values. It extends the ttk.Style class to
+        provide a more flexible and user-friendly way to customize the appearance
+        and behavior of ttk widgets.
+        """
+        self._style.setdefault(style, {}).update(kwargs)
 
         extends = self._style.get(kwargs.get(Style.EXTENDS), {})
-        super().configure(cls, **extends)
+        super().configure(style, **extends)
 
-        super().configure(cls, **kwargs)
+        super().configure(style, **kwargs)
 
 
 def make_cell(
@@ -88,12 +151,13 @@ def make_cell(
     text: str,
     width: int,
     readonly: bool,
-    sv: Optional[tk.StringVar] = None,
-    bg_color='white',
-    fg_color='black',
-    bold=False,
-    **kw,
+    sv: Optional[Union[tk.StringVar, tk.IntVar]] = None,
+    bg_color: str = 'white',
+    fg_color: str = 'black',
+    bold: bool = False,
+    **kw: Any,
 ) -> None:
+    """Create a standard cell for a table."""
     entry1 = tk.Entry(
         parent,
         textvariable=sv if sv is not None else tk.StringVar(parent, value=text),
@@ -112,16 +176,21 @@ def make_cell(
     entry1.grid(row=row, column=col + 2, **kw)
 
 
-def osx_set_process_name(app_title) -> bool:
+def osx_set_process_name(app_title: bytes) -> bool:
     """Change OSX application title"""
-
-    from ctypes import cdll, c_int, pointer, Structure
+    from ctypes import Structure, c_int, cdll, pointer
     from ctypes.util import find_library
 
-    app_services = cdll.LoadLibrary(find_library('ApplicationServices'))
+    lib_name = find_library('ApplicationServices')
+
+    if lib_name is None:
+        logging.error('cannot run without OS X window manager')
+        return False
+
+    app_services = cdll.LoadLibrary(lib_name)
 
     if app_services.CGMainDisplayID() == 0:
-        print('cannot run without OS X window manager')
+        logging.error('cannot run without OS X window manager')
     else:
 
         class ProcessSerialNumber(Structure):
@@ -130,7 +199,7 @@ def osx_set_process_name(app_title) -> bool:
         psn = ProcessSerialNumber()
         psn_p = pointer(psn)
         if (app_services.GetCurrentProcess(psn_p) < 0) or (app_services.SetFrontProcess(psn_p) < 0):
-            print('cannot run without OS X gui process')
+            logging.error('cannot run without OS X gui process')
 
         app_services.CPSSetProcessName(psn_p, app_title)
 

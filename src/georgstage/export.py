@@ -1,17 +1,23 @@
-import webbrowser
-from georgstage.solver import søvagt_skifte_for_vagttid
-from georgstage.model import VagtTid, Opgave, VagtListe, VagtType
-from georgstage.registry import Registry
-from tkinter import messagebox as mb
-from copy import deepcopy
+"""Export vagtliste"""
+
 import tempfile
+import webbrowser
+from copy import deepcopy
+from tkinter import messagebox as mb
+
+from georgstage.model import Opgave, VagtListe, VagtTid, VagtType
+from georgstage.registry import Registry
+from georgstage.solver import søvagt_skifte_for_vagttid
 
 
 class Exporter:
+    """Export vagtliste"""
+
     def __init__(self, registry: Registry) -> None:
         self.registry = registry
 
     def export_vls(self, input_vls: list[VagtListe]) -> None:
+        """Export vagtliste"""
         if len(input_vls) == 0:
             mb.showerror('Fejl', 'Ingen vagtlister at eksportere')
             return
@@ -141,10 +147,15 @@ class Exporter:
             webbrowser.open(f'file://{f.name}', new=1, autoraise=True)
 
     def make_vl_fragment(self, vl: VagtListe) -> str:
+        """Make a fragment of the vagtliste"""
         weekdays = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag']
         return f"""
 <div class="page">
-    <h2 style="margin-top: 60px">Vagtskema: Fra {weekdays[vl.get_date().weekday()]} d. {vl.get_date().strftime('%d/%m')} til {weekdays[vl.end.weekday()]} d. {vl.end.strftime('%d/%m')}</h2>
+    <h2 style="margin-top: 60px">
+      Vagtskema: 
+      Fra {weekdays[vl.get_date().weekday()]} d. {vl.get_date().strftime('%d/%m')} 
+      til {weekdays[vl.end.weekday()]} d. {vl.end.strftime('%d/%m')}
+      </h2>
     <table style="table-layout: fixed; width: 574px; border: 2px solid black">
       <colgroup>
         <col style="width: 150px">
@@ -226,12 +237,24 @@ class Exporter:
           <td>{self.get_nr(vl, VagtTid.T12_16, Opgave.LANDGANGSVAGT_A)}</td>
           <td>{self.get_nr(vl, VagtTid.T16_18, Opgave.LANDGANGSVAGT_A)}</td>
           <td>{self.get_nr(vl, VagtTid.T18_20, Opgave.LANDGANGSVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T20_22, Opgave.NATTEVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T22_00, Opgave.NATTEVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T00_02, Opgave.NATTEVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T02_04, Opgave.NATTEVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T04_06, Opgave.NATTEVAGT_A)}</td>
-          <td>{self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T06_08, Opgave.NATTEVAGT_A)}</td>
+          <td>
+          {self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T20_22, Opgave.NATTEVAGT_A)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T22_00, Opgave.NATTEVAGT_A)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T00_02, Opgave.NATTEVAGT_A)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T02_04, Opgave.NATTEVAGT_A)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T04_06, Opgave.NATTEVAGT_A)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_A)}{self.get_nr(vl, VagtTid.T06_08, Opgave.NATTEVAGT_A)}
+          </td>
         </tr>
         <tr>
           <td class="tg-label">Udkig / Landgangsvagt</td>
@@ -241,12 +264,24 @@ class Exporter:
           <td>{self.get_nr(vl, VagtTid.T12_16, Opgave.LANDGANGSVAGT_B)}</td>
           <td>{self.get_nr(vl, VagtTid.T16_18, Opgave.LANDGANGSVAGT_B)}</td>
           <td>{self.get_nr(vl, VagtTid.T18_20, Opgave.LANDGANGSVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T20_22, Opgave.NATTEVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T22_00, Opgave.NATTEVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T00_02, Opgave.NATTEVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T02_04, Opgave.NATTEVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T04_06, Opgave.NATTEVAGT_B)}</td>
-          <td>{self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T06_08, Opgave.NATTEVAGT_B)}</td>
+          <td>
+          {self.get_nr(vl, VagtTid.T20_22, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T20_22, Opgave.NATTEVAGT_B)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T22_00, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T22_00, Opgave.NATTEVAGT_B)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T00_02, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T00_02, Opgave.NATTEVAGT_B)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T02_04, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T02_04, Opgave.NATTEVAGT_B)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T04_06, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T04_06, Opgave.NATTEVAGT_B)}
+          </td>
+          <td>
+          {self.get_nr(vl, VagtTid.T06_08, Opgave.LANDGANGSVAGT_B)}{self.get_nr(vl, VagtTid.T06_08, Opgave.NATTEVAGT_B)}
+          </td>
         </tr>
         <tr>
           <td class="tg-label">Pejlegast A/B</td>
@@ -401,11 +436,14 @@ class Exporter:
         </tr>
       </tbody>
     </table>
-    <div style="margin-top: 60px; margin-bottom: 5px; margin-left: auto; margin-right: 30px; font-size: small;"><i>Lavet af: Mathias Gredal (nr. 44, 6. bakke!!!)</i></div>
+    <div style="margin-top: 60px; margin-bottom: 5px; margin-left: auto; margin-right: 30px; font-size: small;">
+      <i>Lavet af: Mathias Gredal (nr. 44, 6. bakke!!!)</i>
+    </div>
 </div>
         """
 
     def get_nr(self, vl: VagtListe, tid: VagtTid, opgave: Opgave) -> str:
+        """Get the number of the vagtliste"""
         if tid not in vl.vagter:
             return ''
         if opgave not in vl.vagter[tid].opgaver:
@@ -413,6 +451,7 @@ class Exporter:
         return str(vl.vagter[tid].opgaver[opgave])
 
     def get_hu_nr(self, index: int, vl: VagtListe) -> str:
+        """Get the number of the HU"""
         if vl.vagttype != VagtType.HAVNEVAGT:
             return ''
 
@@ -428,11 +467,13 @@ class Exporter:
         return ''
 
     def get_skifte(self, vl: VagtListe, tid: VagtTid) -> str:
+        """Get the skifte of the vagtliste"""
         if tid not in vl.vagter or (tid in vl.vagter and Opgave.ORDONNANS not in vl.vagter[tid].opgaver):
             return ''
         return str(søvagt_skifte_for_vagttid(vl.starting_shift, tid).value) + '#'
 
     def get_pejlegast(self, vl: VagtListe, tid: VagtTid) -> str:
+        """Get the pejlegast of the vagtliste"""
         if tid not in vl.vagter:
             return ''
         if Opgave.PEJLEGAST_A in vl.vagter[tid].opgaver and Opgave.PEJLEGAST_B in vl.vagter[tid].opgaver:

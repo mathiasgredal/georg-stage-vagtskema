@@ -1,10 +1,13 @@
-from tkinter import ttk
+"""Fancy table component"""
+
 import tkinter as tk
+from dataclasses import dataclass
+from tkinter import ttk
+from typing import Any
 
 from georgstage.components.vertical_scroll import VerticalScrolledFrame
+from georgstage.model import kabys_elev_nrs
 from georgstage.util import make_cell
-from georgstage.solver import kabys_elev_nrs
-from dataclasses import dataclass
 
 HEADER_COLOR = '#5a80b8'
 TINT_COLOR = '#dee5f0'
@@ -12,24 +15,24 @@ TINT_COLOR = '#dee5f0'
 
 @dataclass
 class HeaderLabel:
+    """A label for the header of the table."""
+
     name: str
     width: int
 
 
 class FancyTable(ttk.Frame):
-    """
-    A fancy table that can be used to display data in a grid.
-    """
+    """A fancy table that can be used to display data in a grid."""
 
     def __init__(
         self,
-        parent,
+        parent: ttk.Frame,
         labels: list[HeaderLabel],
         data: dict[tuple[str, int], tk.StringVar],
         col_0_width: int = 3,
         col_0_ipadx: int = 2,
-        *args,
-        **kw,
+        *args: Any,
+        **kw: Any,
     ):
         ttk.Frame.__init__(self, parent, *args, **kw)
         self.col_0_width = col_0_width
@@ -74,7 +77,7 @@ class FancyTable(ttk.Frame):
         self.grid_rowconfigure(0, weight=1)
         self.header.lift()
 
-    def _make_header(self, parent, labels: list[HeaderLabel]):
+    def _make_header(self, parent: ttk.Frame, labels: list[HeaderLabel]) -> None:
         for col, label in enumerate(labels):
             make_cell(parent, 0, col + 1, label.name, label.width, True, None, HEADER_COLOR, 'white', True)
 

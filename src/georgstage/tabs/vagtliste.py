@@ -1,19 +1,21 @@
-import sys
+"""Tab for managing vagtliste"""
+
 import tkinter as tk
+from copy import deepcopy
+from tkinter import messagebox as mb
 from tkinter import ttk
 from typing import Optional
 
-from georgstage.components.tooltip import ToolTip
 from georgstage.model import HU, Opgave, Vagt, VagtTid, VagtType
-from georgstage.solver import autofill_vagtliste
 from georgstage.registry import Registry
-from georgstage.util import get_default_font_size, make_cell
+from georgstage.solver import autofill_vagtliste
+from georgstage.util import make_cell
 from georgstage.validator import show_validation_error, validate_hu, validate_vagtliste
-from tkinter import messagebox as mb
-from copy import deepcopy
 
 
 class VagtListeTab(ttk.Frame):
+    """Tab for managing vagtliste"""
+
     def __init__(self, parent: tk.Misc, registry: Registry) -> None:
         ttk.Frame.__init__(self, parent, padding=(5, 5, 12, 5))
         self.registry = registry
@@ -30,18 +32,22 @@ class VagtListeTab(ttk.Frame):
         self.hu_var: list[tk.StringVar] = []
 
         # GUI Elements
-        self.vagtliste_listbox = tk.Listbox(self, listvariable=self.vagtliste_var, height=15, selectmode=tk.SINGLE)
+        self.vagtliste_list_container = ttk.Frame(self)
+        self.vagtliste_listbox = tk.Listbox(
+            self.vagtliste_list_container, listvariable=self.vagtliste_var, height=15, selectmode=tk.SINGLE
+        )
         self.vagtliste_listbox.configure(exportselection=False)
         self.vagtliste_listbox.bind('<<ListboxSelect>>', self.on_select_list)
-
-        button_size = int(get_default_font_size() * (2 if sys.platform == 'darwin' else 3.5))
-        self.autofill_all_frm = tk.Frame(
-            self.vagtliste_listbox, background='white', width=button_size, height=button_size
-        )
         self.autofill_all_btn = ttk.Button(
-            self.autofill_all_frm, text=' ↻', command=self.on_autofill_all, style='Danger.TButton'
+            self.vagtliste_list_container,
+            text='Genskab alle vagtlister',
+            command=self.on_autofill_all,
         )
-        self.autofill_all_btn_ttp = ToolTip(self.autofill_all_btn, 'Genskab alle vagter')
+        self.autofill_fwd_btn = ttk.Button(
+            self.vagtliste_list_container,
+            text='Genskab fra 2025-03-03',
+            command=self.on_autofill_fwd,
+        )
 
         self.vert_sep = ttk.Separator(self, orient=tk.VERTICAL)
 
@@ -59,16 +65,12 @@ class VagtListeTab(ttk.Frame):
         self.holmen_table_frame = self.make_holmen_table()
 
         # Layout
-        self.vagtliste_listbox.grid(column=0, row=0, rowspan=2, sticky='nsew')
-
-        self.autofill_all_frm.grid(column=1, row=1, pady=5, padx=5, sticky='nsew')
-        self.autofill_all_frm.grid_propagate(False)
-        self.autofill_all_frm.grid_columnconfigure(0, weight=1)
-        self.autofill_all_frm.grid_rowconfigure(0, weight=1)
-        self.autofill_all_btn.grid(sticky='nsew')
-
-        self.vagtliste_listbox.grid_columnconfigure(0, weight=1)
-        self.vagtliste_listbox.grid_rowconfigure(0, weight=1)
+        self.vagtliste_list_container.grid(column=0, row=0, rowspan=2, sticky='nsew')
+        self.vagtliste_listbox.grid(column=0, row=0, pady=(0, 2.5), sticky='nsew')
+        self.autofill_all_btn.grid(column=0, row=1, pady=2.5, sticky='nsew')
+        self.autofill_fwd_btn.grid(column=0, row=2, pady=(2.5, 5), sticky='nsew')
+        self.vagtliste_list_container.grid_columnconfigure(0, weight=1)
+        self.vagtliste_list_container.grid_rowconfigure(0, weight=1)
 
         self.vert_sep.grid(column=1, row=0, rowspan=2, sticky='ns', padx=10)
 
@@ -90,6 +92,7 @@ class VagtListeTab(ttk.Frame):
         self.registry.register_update_listener(self.on_registry_change)
 
     def on_select_list(self, event: tk.Event) -> None:  # type: ignore
+        """Select the vagtliste and sync the list"""
         w = event.widget
         if len(w.curselection()) == 0:
             return
@@ -98,9 +101,11 @@ class VagtListeTab(ttk.Frame):
         self.sync_list()
 
     def on_registry_change(self) -> None:
+        """Update the registry and sync the list"""
         self.sync_list()
 
     def on_autofill_all(self) -> None:
+        """Autofill all vagtliste"""
         old_selected_index = self.selected_index
         self.registry.vagtlister = []
         for vagtperiode in self.registry.vagtperioder:
@@ -108,7 +113,19 @@ class VagtListeTab(ttk.Frame):
         self.selected_index = old_selected_index
         self.registry.notify_update_listeners()
 
+    def on_autofill_fwd(self) -> None:
+        """Autofill the vagtliste from the selected date"""
+        selected_vagtliste = self.registry.vagtlister[self.selected_index]
+        start_date = selected_vagtliste.start
+        for vagtliste in self.registry.vagtlister:
+            if vagtliste.start < start_date:
+                continue
+            vagtliste.vagter = {}
+            autofill_vagtliste(vagtliste, self.registry, ude_nr=self.get_ude_nrs())
+        self.registry.notify_update_listeners()
+
     def make_holmen_table(self) -> ttk.Frame:
+        """Make the holmen table"""
         table_frame = ttk.Frame(self)
 
         holmen_vagt_tider = [
@@ -205,6 +222,7 @@ class VagtListeTab(ttk.Frame):
         return table_frame
 
     def make_havnevagt_table(self) -> ttk.Frame:
+        """Make the havnevagt table"""
         table_frame = ttk.Frame(self)
 
         havne_vagt_tider = [
@@ -298,6 +316,7 @@ class VagtListeTab(ttk.Frame):
         return table_frame
 
     def make_søvagt_table(self) -> ttk.Frame:
+        """Make the søvagt table"""
         table_frame = ttk.Frame(self)
         vagt_opgaver = [
             Opgave.ELEV_VAGTSKIFTE,
@@ -349,6 +368,7 @@ class VagtListeTab(ttk.Frame):
         return table_frame
 
     def save_action(self) -> None:
+        """Save the current item and notify the update listeners"""
         if self.registry.vagtlister[self.selected_index].vagttype == VagtType.SOEVAGT:
             self.save_søvagt()
         elif self.registry.vagtlister[self.selected_index].vagttype == VagtType.HAVNEVAGT:
@@ -358,10 +378,14 @@ class VagtListeTab(ttk.Frame):
         self.registry.notify_update_listeners()
 
     def sync_list(self) -> None:
-        if len(self.registry.vagtlister) == 0:
-            return
+        """Sync the list with the registry"""
+        self.autofill_fwd_btn.configure(state=tk.DISABLED)
+        self.autofill_fwd_btn.configure(text='Genskab fra UKENDT')
 
         self.vagtliste_var.set([vagtliste.to_string() for vagtliste in self.registry.vagtlister])
+
+        if len(self.registry.vagtlister) == 0:
+            return
 
         if self.selected_index >= len(self.registry.vagtlister):
             self.selected_index = len(self.registry.vagtlister) - 1
@@ -371,6 +395,12 @@ class VagtListeTab(ttk.Frame):
 
         for i in range(0, len(self.vagtliste_var.get()), 2):  # type: ignore
             self.vagtliste_listbox.itemconfigure(i, background='#f0f0ff')
+
+        # Update the text on the fwd button and enable/disable it
+        self.autofill_fwd_btn.configure(state=tk.NORMAL)
+        self.autofill_fwd_btn.configure(
+            text=f'Genskab fra {self.registry.vagtlister[self.selected_index].start.strftime("%Y-%m-%d")}'
+        )
 
         # Display the correct table
         if self.registry.vagtlister[self.selected_index].vagttype == VagtType.SOEVAGT:
@@ -383,13 +413,17 @@ class VagtListeTab(ttk.Frame):
             self.søvagt_table_frame.grid_forget()
             self.havnevagt_table_frame.grid(column=2, row=0, sticky='nsew')
             self.sync_havnevagt_table()
-        elif self.registry.vagtlister[self.selected_index].vagttype == VagtType.HOLMEN:
+        elif self.registry.vagtlister[self.selected_index].vagttype in [
+            VagtType.HOLMEN,
+            VagtType.HOLMEN_WEEKEND,
+        ]:
             self.havnevagt_table_frame.grid_forget()
             self.søvagt_table_frame.grid_forget()
             self.holmen_table_frame.grid(column=2, row=0, sticky='nsew')
             self.sync_holmen_table()
 
     def sync_søvagt_table(self) -> None:
+        """Sync the søvagt table with the registry"""
         for sv in self.søvagt_vagtliste_var.values():
             sv.set('')
 
@@ -406,6 +440,7 @@ class VagtListeTab(ttk.Frame):
         )
 
     def sync_havnevagt_table(self) -> None:
+        """Sync the havnevagt table with the registry"""
         selected_vagtliste = self.registry.vagtlister[self.selected_index]
 
         for sv in self.havnevagt_vagtliste_var.values():
@@ -450,6 +485,7 @@ class VagtListeTab(ttk.Frame):
         return
 
     def sync_holmen_table(self) -> None:
+        """Sync the holmen table with the registry"""
         selected_vagtliste = self.registry.vagtlister[self.selected_index]
         for sv in self.holmen_vagtliste_var.values():
             sv.set('')
@@ -471,6 +507,7 @@ class VagtListeTab(ttk.Frame):
         return
 
     def save_holmen(self) -> None:
+        """Save the holmen table"""
         for (tid, opgave), sv in self.holmen_vagtliste_var.items():
             if opgave == Opgave.ELEV_VAGTSKIFTE:
                 continue
@@ -492,13 +529,14 @@ class VagtListeTab(ttk.Frame):
             if validation_result is not None:
                 mb.showerror(
                     'Fejl',
-                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
+                    f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',  # noqa: E501
                 )
                 return
             else:
                 self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
     def save_havnevagt(self) -> None:
+        """Save the havnevagt table"""
         selected_vagtliste = self.registry.vagtlister[self.selected_index]
         unvalidated_vagtliste = deepcopy(selected_vagtliste)
 
@@ -542,6 +580,7 @@ class VagtListeTab(ttk.Frame):
             return
 
     def save_søvagt(self) -> None:
+        """Save the søvagt table"""
         selected_vagtliste = self.registry.vagtlister[self.selected_index]
         unvalidated_vagtliste = deepcopy(selected_vagtliste)
 
@@ -561,17 +600,24 @@ class VagtListeTab(ttk.Frame):
         if validation_result is not None:
             mb.showerror(
                 'Fejl',
-                f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',
+                f'Fejl i vagtliste({validation_result.vagttid.value}) - {validation_result.conflict_a[0].value} og {validation_result.conflict_b[0].value} har samme elev nr. {validation_result.conflict_a[1]}',  # noqa: E501
             )
             return
         else:
             self.registry.vagtlister[self.selected_index] = unvalidated_vagtliste
 
-    def autofill_action(self) -> None:
-        # Parse the comma separated list of elev nrs in ude_var
+    def get_ude_nrs(self) -> list[int]:
+        """Get the ude nrs from the ude_var"""
         try:
-            ude_nrs = [int(nr) for nr in self.ude_var.get().split(',') if nr != '']
-        except:
+            return [int(nr) for nr in self.ude_var.get().split(',') if nr != '']
+        except:  # noqa: E722
+            return []
+
+    def autofill_action(self) -> None:
+        """Autofill the vagtliste"""
+        # Parse the comma separated list of elev nrs in ude_var
+        ude_nrs = self.get_ude_nrs()
+        if len(ude_nrs) == 0:
             mb.showerror('Fejl', 'Ude elev numre skal være kommasepareret, f.eks. 12, 43')
             return
         self.save_action()
@@ -579,5 +625,6 @@ class VagtListeTab(ttk.Frame):
         self.sync_list()
 
     def clear_all(self) -> None:
+        """Clear all vagtliste"""
         self.registry.vagtlister[self.selected_index].vagter = {}
         self.sync_list()

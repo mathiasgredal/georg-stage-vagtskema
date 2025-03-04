@@ -1,18 +1,22 @@
-from tkinter import ttk
-import tkinter as tk
-from typing import Optional
-from georgstage.registry import Registry
-from georgstage.model import Afmønstring, VagtTid, Opgave
-from georgstage.solver import autofill_vagtliste
-from uuid import uuid4, UUID
-from datetime import date, timedelta
+"""Tab for managing afmønstringer"""
 
+import tkinter as tk
+from datetime import date, timedelta
+from tkinter import ttk
+from typing import Any, Optional
+from uuid import UUID, uuid4
+
+from georgstage.model import Afmønstring, Opgave, VagtTid
+from georgstage.registry import Registry
+from georgstage.solver import autofill_vagtliste
 from georgstage.util import get_default_font_size
 
 
 class AfmønstringTab(ttk.Frame):
-    def __init__(self, parent, registry: Registry, *args, **kwargs) -> None:
-        ttk.Frame.__init__(self, parent, padding=(5, 5, 12, 0), *args, **kwargs)
+    """Tab for managing afmønstringer"""
+
+    def __init__(self, parent: tk.Misc, registry: Registry, *args: Any, **kwargs: Any) -> None:
+        ttk.Frame.__init__(self, parent, padding=(5, 5, 12, 0), *args, **kwargs)  # noqa: B026
         self.registry = registry
         self.registry.register_update_listener(self.on_update)
 
@@ -94,6 +98,7 @@ class AfmønstringTab(ttk.Frame):
         self.sync_form()
 
     def on_select(self, event: tk.Event) -> None:  # type: ignore
+        """Select an afmønstring"""
         w = event.widget
         if len(w.curselection()) == 0:
             return
@@ -105,7 +110,11 @@ class AfmønstringTab(ttk.Frame):
         """Sync the listbox with the registry"""
         self.afmønstring_list_var.set([afmønstring.to_string() for afmønstring in self.registry.afmønstringer])
         self.afmønstring_listbox.select_clear(0, tk.END)
-        selected_index = self._get_afmønstring_index(self.selected_afmønstring_id)
+        selected_index = (
+            self._get_afmønstring_index(self.selected_afmønstring_id)
+            if self.selected_afmønstring_id is not None
+            else None
+        )
         if selected_index is not None:
             self.afmønstring_listbox.selection_set(selected_index)
         for i in range(0, len(self.afmønstring_list_var.get()), 2):  # type: ignore
@@ -122,7 +131,7 @@ class AfmønstringTab(ttk.Frame):
         if selected_afmønstring is None:
             return
 
-        self.elev_nr_var.set(selected_afmønstring.elev_nr)
+        self.elev_nr_var.set(str(selected_afmønstring.elev_nr))
         self.name_var.set(selected_afmønstring.name)
         self.start_date_var.set(selected_afmønstring.start_date.strftime('%Y-%m-%d'))
         self.end_date_var.set(selected_afmønstring.end_date.strftime('%Y-%m-%d'))
@@ -159,6 +168,7 @@ class AfmønstringTab(ttk.Frame):
         self.sync_form()
 
     def add_item(self) -> None:
+        """Add an afmønstring"""
         self.registry.afmønstringer.append(
             Afmønstring(
                 id=uuid4(),
@@ -173,6 +183,7 @@ class AfmønstringTab(ttk.Frame):
         self.sync_form()
 
     def remove_item(self) -> None:
+        """Remove an afmønstring"""
         if self.selected_afmønstring_id is None:
             return
         index = self._get_afmønstring_index(self.selected_afmønstring_id)
@@ -185,6 +196,7 @@ class AfmønstringTab(ttk.Frame):
         self.sync_form()
 
     def update_vls(self) -> None:
+        """Update the vagtliste"""
         has_chronological_vagthavende = False
         for afmønstring in self.registry.afmønstringer:
             for vagtliste in self.registry.vagtlister:
@@ -220,10 +232,12 @@ class AfmønstringTab(ttk.Frame):
         self.update_vls_btn.pack_forget()
 
     def on_update(self) -> None:
+        """Update the list and form"""
         self.sync_list()
         self.sync_form()
 
     def _get_afmønstring_index(self, id: UUID) -> Optional[int]:
+        """Get the index of an afmønstring"""
         for i, afmønstring in enumerate(self.registry.afmønstringer):
             if afmønstring.id == id:
                 return i

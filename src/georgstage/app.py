@@ -1,22 +1,25 @@
+"""Georgstage app"""
+
+import logging
 import os
 import sys
 import tkinter as tk
-from tkinter import ttk
 import traceback
-from typing import Optional
+from hashlib import sha256
+from pathlib import Path
+from tkinter import messagebox as mb
+from tkinter import ttk
+from tkinter.filedialog import askopenfilename, asksaveasfilename
+from typing import Any, Optional
 
 from georgstage.export import Exporter
+from georgstage.icon_data import ICON_DATA
+from georgstage.registry import Registry
+from georgstage.tabs.afmønstringer import AfmønstringTab
 from georgstage.tabs.statistik import StatistikTab
 from georgstage.tabs.vagtliste import VagtListeTab
 from georgstage.tabs.vagtperioder import VagtPeriodeTab
-from georgstage.tabs.afmønstringer import AfmønstringTab
-from georgstage.icon_data import ICON_DATA
-from georgstage.registry import Registry
-from tkinter.filedialog import askopenfilename, asksaveasfilename
-from tkinter import messagebox as mb
-from pathlib import Path
 from georgstage.util import Style, get_default_font_size, osx_set_process_name
-from hashlib import sha256
 
 if os.name == 'nt':
     from ctypes import windll  # type: ignore
@@ -25,7 +28,11 @@ if os.name == 'nt':
 
 
 class App:
+    """Georgstage app"""
+
     def __init__(self) -> None:
+        self.setup_logger()
+
         self.root = tk.Tk()
         self.root.geometry('850x475' if sys.platform == 'darwin' else '850x570')
 
@@ -43,7 +50,7 @@ class App:
             logo = tk.PhotoImage(data=ICON_DATA)
             self.root.iconphoto(True, logo)
         except Exception:
-            print('Failed to load icon')
+            logging.error('Failed to load icon')
             pass
 
         self.tab_control = ttk.Notebook(self.root)
@@ -93,7 +100,8 @@ class App:
 
         self.tab_control.pack(padx=0, pady=(0, 0), expand=1, fill='both')
         self.tab_control.bind(
-            '<<NotebookTabChanged>>', lambda _: list(self.tabs.values())[self.tab_control.index('current')].focus_set()
+            '<<NotebookTabChanged>>',
+            lambda _: list(self.tabs.values())[self.tab_control.index('current')].focus_set(),  # type: ignore
         )
 
         # 6. bakke REPRESENT
@@ -109,16 +117,20 @@ class App:
         tk.Tk.report_callback_exception = self.handle_exception
 
     def run(self) -> None:
+        """Run the app"""
         self.root.mainloop()
 
     def print_all(self) -> None:
+        """Print all vagtliste"""
         self.exporter.export_vls(self.registry.vagtlister)
 
     def print_some(self) -> None:
+        """Print some vagtliste"""
         mb.showinfo('Print', 'Ikke implementeret endnu, print alle i stedet')
         self.print_all()
 
     def open_file(self) -> None:
+        """Open a file"""
         try:
             self.file_path = Path(askopenfilename(filetypes=[('Georg Stage Vagtplan', '*.json')]))
             if self.file_path is not None:
@@ -132,11 +144,13 @@ class App:
             mb.showerror('Fejl', 'Filen kunne ikke findes')
         except Exception as e:
             self.file_path = None
+            logging.exception('An error occurred while opening the file')
             raise e
         finally:
             self.root.focus_force()
 
     def save_file(self) -> None:
+        """Save a file"""
         if self.file_path is not None:
             self.registry.save_to_file(self.file_path)
             return
@@ -152,14 +166,17 @@ class App:
             mb.showerror('Fejl', 'Filen blev ikke gemt')
 
     def undo(self) -> None:
+        """Undo the last update"""
         self.registry.undo_last_update()
         self.set_window_title()
 
     def redo(self) -> None:
+        """Redo the last update"""
         self.registry.redo_last_update()
         self.set_window_title()
 
     def check_sync(self) -> None:
+        """Check if the registry is out of sync"""
         if self.file_path is not None:
             on_disk_registry = self.file_path.read_text()
             in_memory_registry = self.registry.save_to_string()
@@ -171,6 +188,7 @@ class App:
         self.root.after(1000, self.check_sync)
 
     def set_window_title(self) -> None:
+        """Set the window title"""
         base_title = 'Georg Stage - Vagtlister'
 
         if self.out_of_sync:
@@ -181,10 +199,18 @@ class App:
         else:
             self.root.title(f'{base_title} (ingen fil)')
 
-    def handle_exception(self, *args) -> None:
+    def handle_exception(self, *args: Any) -> None:
+        """Handle an exception"""
         err = traceback.format_exception(*args)
-        print(''.join(err))
+        logging.error(''.join(err))
         mb.showwarning('Fejl', err[-1])
+
+    def setup_logger(self) -> None:
+        """Setup the logger"""
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+        )
 
 
 if __name__ == '__main__':
