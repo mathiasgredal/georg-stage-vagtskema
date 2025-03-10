@@ -6,7 +6,7 @@ from enum import Enum, unique
 from typing import Any
 from uuid import UUID, uuid4
 
-kabys_elev_nrs = [0, 9, 61, 62, 63]
+kabys_elev_nrs = [0, 61, 62, 63]
 
 
 def next_datetime(current: datetime, hour: int, **kwargs: Any) -> datetime:
