@@ -8,8 +8,11 @@ import logging
 import sys
 import tkinter as tk
 import uuid
+from pathlib import Path
 from tkinter import font, ttk
 from typing import Any, Optional, Union
+
+import tomllib
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
@@ -209,3 +212,11 @@ def osx_set_process_name(app_title: bytes) -> bool:
 def get_default_font_size() -> int:
     """Get the default font size for the current platform"""
     return font.nametofont('TkDefaultFont').actual()['size']
+
+
+def get_project_version():
+    """Get version of project based on pyproject.toml"""
+    pyproject_toml_file = Path(__file__).parent.parent.parent / 'pyproject.toml'
+    if pyproject_toml_file.exists() and pyproject_toml_file.is_file():
+        return f'v{tomllib.loads(pyproject_toml_file.read_text())["project"]["version"]}'
+    return 'unknown'

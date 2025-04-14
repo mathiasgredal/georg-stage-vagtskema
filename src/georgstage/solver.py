@@ -3,7 +3,7 @@
 import collections
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from tkinter import messagebox as mb
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -290,12 +290,9 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
 
     # Subtract start_date by 1 day, match all vls, to find that day
     vl_one_day_ago: Optional[VagtListe] = None
-    vl_two_days_ago: Optional[VagtListe] = None
     for _vl in registry.vagtlister:
         if (vl.start - timedelta(days=1)).date() == _vl.start.date():
             vl_one_day_ago = _vl
-        if (vl.start - timedelta(days=2)).date() == _vl.start.date():
-            vl_two_days_ago = _vl
 
     if Opgave.VAGTHAVENDE_ELEV not in vagt.opgaver:
         if vl.chronological_vagthavende:
@@ -351,34 +348,28 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
     # if nattevagt, find dagsvagter and add to unavailable_numbers
     fysiske_vagter = [Opgave.ORDONNANS, Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER]
 
-    prev_vagter: list[int] = []
-    for _vl in [vl, vl_one_day_ago] if vl_one_day_ago is not None else [vl]:
-        for _, _vagt in _vl.vagter.items():
-            for opgave, elev_nr in _vagt.opgaver.items():
-                if opgave not in fysiske_vagter:
-                    continue
-                prev_vagter.append(elev_nr)
-
-    if vl_two_days_ago is not None:
-        for _tid, _vagt in vl_two_days_ago.vagter.items():
-            for opgave, elev_nr in _vagt.opgaver.items():
-                if opgave not in fysiske_vagter:
-                    continue
-                if is_dagsvagt(_tid) and is_nattevagt(time):
-                    prev_vagter.append(elev_nr)
-                if is_nattevagt(_tid) and is_dagsvagt(time):
-                    prev_vagter.append(elev_nr)
+    fysiske_vagter_current: list[int] = []
+    for _, _vagt in vl.vagter.items():
+        for opgave, elev_nr in _vagt.opgaver.items():
+            if opgave not in fysiske_vagter:
+                continue
+            fysiske_vagter_current.append(elev_nr)
 
     for fysisk_vagt in fysiske_vagter:
-        for prev_vagt in prev_vagter:
-            if get_skifte_from_elev_nr(prev_vagt) != skifte:
-                continue
-            if (fysisk_vagt, prev_vagt) not in skifte_stats:
-                skifte_stats[(fysisk_vagt, prev_vagt)] = 1
-            skifte_stats[(fysisk_vagt, prev_vagt)] *= 10
-        if fysisk_vagt not in vagt.opgaver:
-            vagt.opgaver[fysisk_vagt] = pick_least([*unavailable_numbers], filter_by_opgave(fysisk_vagt, skifte_stats))
-        unavailable_numbers.append(vagt.opgaver[fysisk_vagt])
+        for fysisk_vagt in fysiske_vagter:
+            if fysisk_vagt not in vagt.opgaver:
+                vagt.opgaver[fysisk_vagt] = pick_most_days_since(
+                    [*unavailable_numbers, *fysiske_vagter_current],
+                    fysisk_vagt,
+                    skifte,
+                    vl.get_date(),
+                    registry,
+                )
+                if vagt.opgaver[fysisk_vagt] is None:
+                    vagt.opgaver[fysisk_vagt] = pick_least(
+                        [*unavailable_numbers, *fysiske_vagter_current], filter_by_opgave(fysisk_vagt, skifte_stats)
+                    )
+            unavailable_numbers.append(vagt.opgaver[fysisk_vagt])
 
     udsætningsgast_opgaver = [
         Opgave.UDSAETNINGSGAST_A,
@@ -461,6 +452,54 @@ def filter_by_skifte(skifte: VagtSkifte, stats: dict[tuple[Opgave, int], int]) -
         filtered_stats[(opg, elev_nr)] = antal
 
     return filtered_stats
+
+
+def pick_most_days_since(
+    unavailable_numbers: list[int], opgave: Opgave, skifte: VagtSkifte, today: date, registry: 'Registry'
+) -> int:
+    """Pick an available number, which is most days since last picked"""
+    # Capture all physical duties, seperated by vagtperiode
+    fysiske_vagter: list[tuple[date, int]] = []
+    for vagtliste in registry.vagtlister:
+        for _, vagt in vagtliste.vagter.items():
+            for opg, nr in vagt.opgaver.items():
+                if opg not in [Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER, Opgave.ORDONNANS]:
+                    continue
+                fysiske_vagter.append((vagtliste.get_date(), nr))
+
+    # Sample the distances
+    fysisk_vagt_days_ago: dict[int, int] = {}  # elev_nr is key, days ago is value
+    for dato, elev_nr in fysiske_vagter:
+        distance = abs((today - dato).days)
+
+        if elev_nr not in fysisk_vagt_days_ago:
+            fysisk_vagt_days_ago[elev_nr] = distance
+
+        if fysisk_vagt_days_ago[elev_nr] > distance:
+            fysisk_vagt_days_ago[elev_nr] = distance
+
+    # Add the missing numbers with infinity days
+    for elev_nr in range(63):
+        if elev_nr in kabys_elev_nrs:
+            continue
+        if elev_nr not in fysisk_vagt_days_ago:
+            fysisk_vagt_days_ago[elev_nr] = 999999
+
+    most_days_ago_since_picked_elev_nr = None
+    most_days_ago_since_days = -1
+
+    fysisk_vagt_days_ago_list = list(fysisk_vagt_days_ago.items())
+    random.shuffle(fysisk_vagt_days_ago_list)
+    for elev_nr, days_ago in fysisk_vagt_days_ago_list:
+        if get_skifte_from_elev_nr(elev_nr) != skifte:
+            continue
+        if elev_nr in unavailable_numbers:
+            continue
+        if days_ago > most_days_ago_since_days:
+            most_days_ago_since_picked_elev_nr = elev_nr
+            most_days_ago_since_days = days_ago
+
+    return most_days_ago_since_picked_elev_nr
 
 
 def pick_least(unavailable_numbers: list[int], stats: dict[tuple[Opgave, int], int]) -> int:

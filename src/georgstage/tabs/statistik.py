@@ -1,8 +1,11 @@
 """Tab for statistik"""
 
 import tkinter as tk
+from collections import defaultdict
+from datetime import date
 from tkinter import ttk
 from typing import Any
+from uuid import UUID
 
 from georgstage.components.fancy_table import FancyTable, HeaderLabel
 from georgstage.components.responsive_notebook import ResponsiveNotebook
@@ -33,17 +36,24 @@ class StatistikTab(ttk.Frame):
         self.landgangsvagt_vars: dict[tuple[str, int], tk.StringVar] = {}
         self.holmen_vars: dict[tuple[str, int], tk.StringVar] = {}
         self.others_vars: dict[tuple[str, int], tk.StringVar] = {}
+        self.vagtfordeling_vars: dict[tuple[str, int], tk.StringVar] = {}
 
         # GUI Elements
         self.stats_frame = self.make_text_stats(self)
         self.v_sep = ttk.Separator(self, orient=tk.VERTICAL)
         self.notebook = ResponsiveNotebook(self)
+        self.fordeling_notebook = ResponsiveNotebook(self.notebook.tab_stack)
 
         self.notebook.add('Vagthavende ELEV', self.make_vagthavende_elev_table(self.notebook.tab_stack))
-        self.notebook.add('Dækselev i kabys', self.make_dækselev_i_kabys_table(self.notebook.tab_stack))
+        self.notebook.add('Kabys', self.make_dækselev_i_kabys_table(self.notebook.tab_stack))
         self.notebook.add('Landgangsvagt', self.make_landgangsvagt_table(self.notebook.tab_stack))
         self.notebook.add('Holmen', self.make_holmen_table(self.notebook.tab_stack))
         self.notebook.add('Andet', self.make_others_table(self.notebook.tab_stack))
+        self.notebook.add('Vagtfordeling', self.fordeling_notebook)
+
+        self.fordeling_notebook.add('Søvagt (TOTAL)', self.make_vagtfordeling_table(self.fordeling_notebook.tab_stack))
+        # self.fordeling_notebook.add('Søvagt (DAG)', self.make_others_table(self.fordeling_notebook.tab_stack))
+        # self.fordeling_notebook.add('Søvagt (NAT)', self.make_others_table(self.fordeling_notebook.tab_stack))
 
         # Layout
         self.stats_frame.grid(column=0, row=0, pady=(0, 5), sticky='nsew')
@@ -184,6 +194,27 @@ class StatistikTab(ttk.Frame):
 
         return table
 
+    def make_vagtfordeling_table(self, parent: ttk.Frame) -> FancyTable:
+        """Make the vagtfordeling table"""
+        labels: list[HeaderLabel] = [
+            HeaderLabel('Min', 7),
+            HeaderLabel('Maks', 7),
+            HeaderLabel('Første kvartil', 11),
+            HeaderLabel('Median', 7),
+            HeaderLabel('Tredje kvartil', 11),
+            HeaderLabel('Gns.', 7),
+        ]
+
+        table = FancyTable(
+            parent,
+            labels,
+            self.vagtfordeling_vars,
+            col_0_width=4,
+            col_0_ipadx=3,
+        )
+
+        return table
+
     def on_registry_change(self) -> None:
         """Update the stats"""
         self.handle_opgave_stats(Opgave.VAGTHAVENDE_ELEV, self.vagthavende_elev_vars)
@@ -191,6 +222,7 @@ class StatistikTab(ttk.Frame):
         self.handle_landgangsvagt_stats()
         self.handle_holmen_stats()
         self.handle_others_stats()
+        self.handle_vagtfordeling_stats()
         self.handle_text_stats()
 
     def handle_opgave_stats(self, opgave: Opgave, vars: dict[tuple[str, int], tk.StringVar]) -> None:
@@ -314,6 +346,82 @@ class StatistikTab(ttk.Frame):
             if elev_nr == 0:
                 continue
             self.others_vars[(label, elev_nr)].set(str(count))
+
+    def handle_vagtfordeling_stats(self) -> None:
+        """Handle the vagtfordeling stats"""
+        stats: dict[tuple[str, int], int] = {}
+
+        # Capture all physical duties, seperated by vagtperiode
+        fysiske_vagter: dict[UUID, list[tuple[date, Opgave, int]]] = {}
+        for vagtliste in self.registry.vagtlister:
+            if vagtliste.vagtperiode_id not in fysiske_vagter:
+                fysiske_vagter[vagtliste.vagtperiode_id] = []
+
+            for _, vagt in vagtliste.vagter.items():
+                for opg, nr in vagt.opgaver.items():
+                    if opg not in [Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER, Opgave.ORDONNANS]:
+                        continue
+                    fysiske_vagter[vagtliste.vagtperiode_id].append((vagtliste.get_date(), nr))
+
+        # Sort the values by date
+        for _, fysiske_vagter_list in fysiske_vagter.items():
+            fysiske_vagter_list.sort(key=lambda v: v[0])
+
+        # Sample the distances
+        fysisk_vagt_distances: list[tuple[int, int]] = []
+        for _, fysiske_vagter_list in fysiske_vagter.items():
+            for index, (dato, elev_nr) in enumerate(fysiske_vagter_list):
+                distance = -1
+                for next_dato, next_elev_nr in fysiske_vagter_list[index + 1 :]:
+                    if elev_nr == next_elev_nr:
+                        distance = (next_dato - dato).days
+                        break
+                if distance != -1:
+                    fysisk_vagt_distances.append((elev_nr, distance))
+
+        # Step 1: Group weights by identifier
+        id_to_weights = defaultdict(list)
+        for id_, weight in fysisk_vagt_distances:
+            id_to_weights[id_].append(weight)
+
+        # Step 2: Compute stats for each identifier
+        for id_, weights in id_to_weights.items():
+            sorted_weights = sorted(weights)
+            n = len(sorted_weights)
+
+            # Min, Max, Mean
+            min_val = sorted_weights[0]
+            max_val = sorted_weights[-1]
+            mean = sum(sorted_weights) / n
+
+            # Quantiles (25%, 50%, 75%)
+            def get_quantile(p, n, sorted_weights):
+                idx = p * (n - 1)
+                if idx.is_integer():
+                    return sorted_weights[int(idx)]
+                lower = sorted_weights[int(idx)]
+                upper = sorted_weights[int(idx) + 1]
+                return lower + (upper - lower) * (idx - int(idx))
+
+            q1 = get_quantile(0.25, n, sorted_weights)  # 25th percentile
+            median = get_quantile(0.5, n, sorted_weights)  # 50th percentile
+            q3 = get_quantile(0.75, n, sorted_weights)  # 75th percentile
+
+            # Print formatted results (1 line per ID)
+            stats[('Min', id_)] = min_val
+            stats[('Maks', id_)] = max_val
+            stats[('Første kvartil', id_)] = q1
+            stats[('Median', id_)] = median
+            stats[('Tredje kvartil', id_)] = q3
+            stats[('Gns.', id_)] = mean
+
+        for _, var in self.vagtfordeling_vars.items():
+            var.set('0')
+
+        for (label, elev_nr), days in stats.items():
+            if elev_nr == 0:
+                continue
+            self.vagtfordeling_vars[(label, elev_nr)].set(f'{days:.1f}')
 
     def handle_text_stats(self) -> None:
         """Handle the text stats"""

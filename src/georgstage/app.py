@@ -2,6 +2,7 @@
 
 import logging
 import os
+import random
 import sys
 import tkinter as tk
 import traceback
@@ -19,7 +20,7 @@ from georgstage.tabs.afmønstringer import AfmønstringTab
 from georgstage.tabs.statistik import StatistikTab
 from georgstage.tabs.vagtliste import VagtListeTab
 from georgstage.tabs.vagtperioder import VagtPeriodeTab
-from georgstage.util import Style, get_default_font_size, osx_set_process_name
+from georgstage.util import Style, get_default_font_size, get_project_version, osx_set_process_name
 
 if os.name == 'nt':
     from ctypes import windll  # type: ignore
@@ -189,7 +190,8 @@ class App:
 
     def set_window_title(self) -> None:
         """Set the window title"""
-        base_title = 'Georg Stage - Vagtlister'
+        version = get_project_version()
+        base_title = f'Georg Stage({version}) - Vagtlister'
 
         if self.out_of_sync:
             base_title = '*' + base_title

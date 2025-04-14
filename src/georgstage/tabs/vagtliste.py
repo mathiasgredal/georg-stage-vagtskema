@@ -611,15 +611,13 @@ class VagtListeTab(ttk.Frame):
         try:
             return [int(nr) for nr in self.ude_var.get().split(',') if nr != '']
         except:  # noqa: E722
+            mb.showerror('Fejl', 'Ude elev numre skal være kommasepareret, f.eks. 12, 43')
             return []
 
     def autofill_action(self) -> None:
         """Autofill the vagtliste"""
         # Parse the comma separated list of elev nrs in ude_var
         ude_nrs = self.get_ude_nrs()
-        if len(ude_nrs) == 0:
-            mb.showerror('Fejl', 'Ude elev numre skal være kommasepareret, f.eks. 12, 43')
-            return
         self.save_action()
         autofill_vagtliste(self.registry.vagtlister[self.selected_index], self.registry, ude_nrs)
         self.sync_list()
