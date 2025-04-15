@@ -498,14 +498,12 @@ def pick_most_days_since(
         if elev_nr in unavailable_numbers:
             continue
 
-        # FIXME: Not a big fan of randomness here, but it really fixes the distance spread
-        if is_dagsvagt(_tid) == is_dagsvagt(tid) and days_ago < random.choice([2, 2, 3]):
+        if is_dagsvagt(_tid) == is_dagsvagt(tid) and days_ago < 10000 and days_ago > 1:
             continue
 
         if days_ago > most_days_ago_since_days:
             most_days_ago_since_picked_elev_nr = elev_nr
             most_days_ago_since_days = days_ago
-
     return most_days_ago_since_picked_elev_nr
 
 

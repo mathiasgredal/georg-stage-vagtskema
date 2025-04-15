@@ -365,7 +365,7 @@ class StatistikTab(ttk.Frame):
         stats: dict[tuple[str, int], int] = {}
 
         # Capture all physical duties, seperated by vagtperiode
-        fysiske_vagter: dict[UUID, list[tuple[date, Opgave, int]]] = {}
+        fysiske_vagter: dict[UUID, list[tuple[date, VagtTid, int]]] = {}
         for vagtliste in self.registry.vagtlister:
             if vagtliste.vagtperiode_id not in fysiske_vagter:
                 fysiske_vagter[vagtliste.vagtperiode_id] = []
@@ -378,7 +378,7 @@ class StatistikTab(ttk.Frame):
                         continue
                     if is_nattevagt(tid) and vagttype == 'dag':
                         continue
-                    fysiske_vagter[vagtliste.vagtperiode_id].append((vagtliste.get_date(), nr))
+                    fysiske_vagter[vagtliste.vagtperiode_id].append((vagtliste.get_date(), tid, nr))
 
         # Sort the values by date
         for _, fysiske_vagter_list in fysiske_vagter.items():
@@ -387,11 +387,15 @@ class StatistikTab(ttk.Frame):
         # Sample the distances
         fysisk_vagt_distances: list[tuple[int, int]] = []
         for _, fysiske_vagter_list in fysiske_vagter.items():
-            for index, (dato, elev_nr) in enumerate(fysiske_vagter_list):
+            for index, (dato, tid, elev_nr) in enumerate(fysiske_vagter_list):
                 distance = -1
-                for next_dato, next_elev_nr in fysiske_vagter_list[index + 1 :]:
+                for next_dato, next_tid, next_elev_nr in fysiske_vagter_list[index + 1 :]:
                     if elev_nr == next_elev_nr:
                         distance = (next_dato - dato).days
+                        if is_dagsvagt(tid) and is_nattevagt(next_tid):
+                            distance += 0.5
+                        if is_nattevagt(tid) and is_dagsvagt(next_tid):
+                            distance -= 0.5
                         break
                 if distance != -1:
                     fysisk_vagt_distances.append((elev_nr, distance))
@@ -420,7 +424,7 @@ class StatistikTab(ttk.Frame):
                 upper = sorted_weights[int(idx) + 1]
                 return lower + (upper - lower) * (idx - int(idx))
 
-            q1 = get_quantile(0.10, n, sorted_weights)  # 25th percentile
+            q1 = get_quantile(0.25, n, sorted_weights)  # 25th percentile
             median = get_quantile(0.5, n, sorted_weights)  # 50th percentile
             q3 = get_quantile(0.75, n, sorted_weights)  # 75th percentile
 

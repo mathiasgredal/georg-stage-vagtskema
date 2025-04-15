@@ -2,7 +2,6 @@
 
 import logging
 import os
-import random
 import sys
 import tkinter as tk
 import traceback

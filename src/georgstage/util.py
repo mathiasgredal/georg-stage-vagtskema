@@ -214,7 +214,7 @@ def get_default_font_size() -> int:
     return font.nametofont('TkDefaultFont').actual()['size']
 
 
-def get_project_version():
+def get_project_version() -> str:
     """Get version of project based on pyproject.toml"""
     pyproject_toml_file = Path(__file__).parent.parent.parent / 'pyproject.toml'
     if pyproject_toml_file.exists() and pyproject_toml_file.is_file():
