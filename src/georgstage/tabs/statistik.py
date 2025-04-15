@@ -3,7 +3,7 @@
 import tkinter as tk
 from collections import defaultdict
 from datetime import date
-from tkinter import ttk
+from tkinter import StringVar, ttk
 from typing import Any
 from uuid import UUID
 
@@ -11,7 +11,7 @@ from georgstage.components.fancy_table import FancyTable, HeaderLabel
 from georgstage.components.responsive_notebook import ResponsiveNotebook
 from georgstage.model import Opgave, VagtSkifte, VagtTid, VagtType, kabys_elev_nrs
 from georgstage.registry import Registry
-from georgstage.solver import get_skifte_from_elev_nr
+from georgstage.solver import get_skifte_from_elev_nr, is_dagsvagt, is_nattevagt
 from georgstage.util import get_default_font_size
 
 skifte_labels = {
@@ -36,7 +36,9 @@ class StatistikTab(ttk.Frame):
         self.landgangsvagt_vars: dict[tuple[str, int], tk.StringVar] = {}
         self.holmen_vars: dict[tuple[str, int], tk.StringVar] = {}
         self.others_vars: dict[tuple[str, int], tk.StringVar] = {}
-        self.vagtfordeling_vars: dict[tuple[str, int], tk.StringVar] = {}
+        self.vagtfordeling_total_vars: dict[tuple[str, int], tk.StringVar] = {}
+        self.vagtfordeling_dag_vars: dict[tuple[str, int], tk.StringVar] = {}
+        self.vagtfordeling_nat_vars: dict[tuple[str, int], tk.StringVar] = {}
 
         # GUI Elements
         self.stats_frame = self.make_text_stats(self)
@@ -51,9 +53,18 @@ class StatistikTab(ttk.Frame):
         self.notebook.add('Andet', self.make_others_table(self.notebook.tab_stack))
         self.notebook.add('Vagtfordeling', self.fordeling_notebook)
 
-        self.fordeling_notebook.add('Søvagt (TOTAL)', self.make_vagtfordeling_table(self.fordeling_notebook.tab_stack))
-        # self.fordeling_notebook.add('Søvagt (DAG)', self.make_others_table(self.fordeling_notebook.tab_stack))
-        # self.fordeling_notebook.add('Søvagt (NAT)', self.make_others_table(self.fordeling_notebook.tab_stack))
+        self.fordeling_notebook.add(
+            'Søvagt (TOTAL)',
+            self.make_vagtfordeling_table(self.fordeling_notebook.tab_stack, self.vagtfordeling_total_vars),
+        )
+        self.fordeling_notebook.add(
+            'Søvagt (DAG)',
+            self.make_vagtfordeling_table(self.fordeling_notebook.tab_stack, self.vagtfordeling_dag_vars),
+        )
+        self.fordeling_notebook.add(
+            'Søvagt (NAT)',
+            self.make_vagtfordeling_table(self.fordeling_notebook.tab_stack, self.vagtfordeling_nat_vars),
+        )
 
         # Layout
         self.stats_frame.grid(column=0, row=0, pady=(0, 5), sticky='nsew')
@@ -194,7 +205,7 @@ class StatistikTab(ttk.Frame):
 
         return table
 
-    def make_vagtfordeling_table(self, parent: ttk.Frame) -> FancyTable:
+    def make_vagtfordeling_table(self, parent: ttk.Frame, vars: dict[tuple[str, int], StringVar]) -> FancyTable:
         """Make the vagtfordeling table"""
         labels: list[HeaderLabel] = [
             HeaderLabel('Min', 7),
@@ -208,7 +219,7 @@ class StatistikTab(ttk.Frame):
         table = FancyTable(
             parent,
             labels,
-            self.vagtfordeling_vars,
+            vars,
             col_0_width=4,
             col_0_ipadx=3,
         )
@@ -222,7 +233,9 @@ class StatistikTab(ttk.Frame):
         self.handle_landgangsvagt_stats()
         self.handle_holmen_stats()
         self.handle_others_stats()
-        self.handle_vagtfordeling_stats()
+        self.handle_vagtfordeling_stats('dag')
+        self.handle_vagtfordeling_stats('nat')
+        self.handle_vagtfordeling_stats('total')
         self.handle_text_stats()
 
     def handle_opgave_stats(self, opgave: Opgave, vars: dict[tuple[str, int], tk.StringVar]) -> None:
@@ -347,7 +360,7 @@ class StatistikTab(ttk.Frame):
                 continue
             self.others_vars[(label, elev_nr)].set(str(count))
 
-    def handle_vagtfordeling_stats(self) -> None:
+    def handle_vagtfordeling_stats(self, vagttype: str) -> None:
         """Handle the vagtfordeling stats"""
         stats: dict[tuple[str, int], int] = {}
 
@@ -357,9 +370,13 @@ class StatistikTab(ttk.Frame):
             if vagtliste.vagtperiode_id not in fysiske_vagter:
                 fysiske_vagter[vagtliste.vagtperiode_id] = []
 
-            for _, vagt in vagtliste.vagter.items():
+            for tid, vagt in vagtliste.vagter.items():
                 for opg, nr in vagt.opgaver.items():
                     if opg not in [Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER, Opgave.ORDONNANS]:
+                        continue
+                    if is_dagsvagt(tid) and vagttype == 'nat':
+                        continue
+                    if is_nattevagt(tid) and vagttype == 'dag':
                         continue
                     fysiske_vagter[vagtliste.vagtperiode_id].append((vagtliste.get_date(), nr))
 
@@ -403,7 +420,7 @@ class StatistikTab(ttk.Frame):
                 upper = sorted_weights[int(idx) + 1]
                 return lower + (upper - lower) * (idx - int(idx))
 
-            q1 = get_quantile(0.25, n, sorted_weights)  # 25th percentile
+            q1 = get_quantile(0.10, n, sorted_weights)  # 25th percentile
             median = get_quantile(0.5, n, sorted_weights)  # 50th percentile
             q3 = get_quantile(0.75, n, sorted_weights)  # 75th percentile
 
@@ -415,13 +432,28 @@ class StatistikTab(ttk.Frame):
             stats[('Tredje kvartil', id_)] = q3
             stats[('Gns.', id_)] = mean
 
-        for _, var in self.vagtfordeling_vars.items():
+        vars = None
+        match vagttype:
+            case 'dag':
+                vars = self.vagtfordeling_dag_vars
+            case 'nat':
+                vars = self.vagtfordeling_nat_vars
+            case 'total':
+                vars = self.vagtfordeling_total_vars
+
+        for _, var in vars.items():
             var.set('0')
 
         for (label, elev_nr), days in stats.items():
             if elev_nr == 0:
                 continue
-            self.vagtfordeling_vars[(label, elev_nr)].set(f'{days:.1f}')
+            match vagttype:
+                case 'dag':
+                    vars[(label, elev_nr)].set(f'{days:.1f}')
+                case 'nat':
+                    vars[(label, elev_nr)].set(f'{days:.1f}')
+                case 'total':
+                    vars[(label, elev_nr)].set(f'{days:.1f}')
 
     def handle_text_stats(self) -> None:
         """Handle the text stats"""

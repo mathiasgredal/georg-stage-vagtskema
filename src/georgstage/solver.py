@@ -349,18 +349,19 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
     fysiske_vagter = [Opgave.ORDONNANS, Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER]
 
     fysiske_vagter_current: list[int] = []
-    for _, _vagt in vl.vagter.items():
-        for opgave, elev_nr in _vagt.opgaver.items():
-            if opgave not in fysiske_vagter:
-                continue
-            fysiske_vagter_current.append(elev_nr)
+    for _vl in [vl, vl_one_day_ago]:
+        for _, _vagt in vl.vagter.items():
+            for opgave, elev_nr in _vagt.opgaver.items():
+                if opgave not in fysiske_vagter:
+                    continue
+                fysiske_vagter_current.append(elev_nr)
 
     for fysisk_vagt in fysiske_vagter:
         for fysisk_vagt in fysiske_vagter:
             if fysisk_vagt not in vagt.opgaver:
                 vagt.opgaver[fysisk_vagt] = pick_most_days_since(
                     [*unavailable_numbers, *fysiske_vagter_current],
-                    fysisk_vagt,
+                    time,
                     skifte,
                     vl.get_date(),
                     registry,
@@ -455,46 +456,52 @@ def filter_by_skifte(skifte: VagtSkifte, stats: dict[tuple[Opgave, int], int]) -
 
 
 def pick_most_days_since(
-    unavailable_numbers: list[int], opgave: Opgave, skifte: VagtSkifte, today: date, registry: 'Registry'
+    unavailable_numbers: list[int], tid: VagtTid, skifte: VagtSkifte, today: date, registry: 'Registry'
 ) -> int:
     """Pick an available number, which is most days since last picked"""
     # Capture all physical duties, seperated by vagtperiode
-    fysiske_vagter: list[tuple[date, int]] = []
+    fysiske_vagter: list[tuple[date, tuple[int, VagtTid]]] = []
     for vagtliste in registry.vagtlister:
-        for _, vagt in vagtliste.vagter.items():
+        for _tid, vagt in vagtliste.vagter.items():
             for opg, nr in vagt.opgaver.items():
                 if opg not in [Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER, Opgave.ORDONNANS]:
                     continue
-                fysiske_vagter.append((vagtliste.get_date(), nr))
+                fysiske_vagter.append((vagtliste.get_date(), (nr, _tid)))
 
     # Sample the distances
-    fysisk_vagt_days_ago: dict[int, int] = {}  # elev_nr is key, days ago is value
-    for dato, elev_nr in fysiske_vagter:
+    fysisk_vagt_days_ago: dict[int, tuple[int, VagtTid]] = {}  # elev_nr is key, days ago is value
+    for dato, (elev_nr, _tid) in fysiske_vagter:
         distance = abs((today - dato).days)
 
         if elev_nr not in fysisk_vagt_days_ago:
-            fysisk_vagt_days_ago[elev_nr] = distance
+            fysisk_vagt_days_ago[elev_nr] = (distance, _tid)
 
-        if fysisk_vagt_days_ago[elev_nr] > distance:
-            fysisk_vagt_days_ago[elev_nr] = distance
+        if fysisk_vagt_days_ago[elev_nr][0] > distance:
+            fysisk_vagt_days_ago[elev_nr] = (distance, _tid)
 
     # Add the missing numbers with infinity days
     for elev_nr in range(63):
         if elev_nr in kabys_elev_nrs:
             continue
         if elev_nr not in fysisk_vagt_days_ago:
-            fysisk_vagt_days_ago[elev_nr] = 999999
+            fysisk_vagt_days_ago[elev_nr] = (999999, tid)
 
     most_days_ago_since_picked_elev_nr = None
     most_days_ago_since_days = -1
 
     fysisk_vagt_days_ago_list = list(fysisk_vagt_days_ago.items())
     random.shuffle(fysisk_vagt_days_ago_list)
-    for elev_nr, days_ago in fysisk_vagt_days_ago_list:
+    for elev_nr, (days_ago, _tid) in fysisk_vagt_days_ago_list:
         if get_skifte_from_elev_nr(elev_nr) != skifte:
             continue
+
         if elev_nr in unavailable_numbers:
             continue
+
+        # FIXME: Not a big fan of randomness here, but it really fixes the distance spread
+        if is_dagsvagt(_tid) == is_dagsvagt(tid) and days_ago < random.choice([2, 2, 3]):
+            continue
+
         if days_ago > most_days_ago_since_days:
             most_days_ago_since_picked_elev_nr = elev_nr
             most_days_ago_since_days = days_ago
