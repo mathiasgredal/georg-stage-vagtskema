@@ -224,6 +224,65 @@ def get_last_vagthavende_from_skifte(
 
     return -1
 
+def get_last_pejlegast_b_from_skifte(
+    time: VagtTid,
+    current_vl: VagtListe,
+    registry: 'Registry',
+    skifte: VagtSkifte,
+) -> int:
+    """Get the last pejlegast b from the skifte, or negative if none"""
+    
+    # Check if there is a earlier time in the same vl
+    for tid, vagt in current_vl.vagter.items():
+        if tid == time:
+            continue
+
+        if vagt.vagt_skifte != skifte:
+            continue
+
+        if Opgave.PEJLEGAST_B in vagt.opgaver:
+            return vagt.opgaver[Opgave.PEJLEGAST_B]
+
+    last_vl: Optional[VagtListe] = None
+    # Find the vl which is closest to the current vl, but before it
+    for vl in registry.vagtlister:
+        if vl.start >= current_vl.start:
+            continue
+
+        # Check if a pejlegast b from this skifte is assigned in the vl
+        has_pejlegast_b = False
+        for _, vagt in vl.vagter.items():
+            if vagt.vagt_skifte == skifte and Opgave.PEJLEGAST_B in vagt.opgaver:
+                has_pejlegast_b = True
+                break
+
+        if not has_pejlegast_b:
+            continue
+
+        if last_vl is None or vl.start > last_vl.start:
+            last_vl = vl
+
+    if last_vl is None:
+        return -1
+
+    # Find all the pejlegast b from the last vl from the given skifte
+    pejlegast_b: dict[VagtTid, int] = {}
+    for tid, vagt in last_vl.vagter.items():
+        if vagt.vagt_skifte == skifte and Opgave.PEJLEGAST_B in vagt.opgaver:
+            pejlegast_b[tid] = vagt.opgaver[Opgave.PEJLEGAST_B]
+
+    if VagtTid.ALL_DAY in pejlegast_b:
+        return pejlegast_b[VagtTid.ALL_DAY]
+
+    for tid in [VagtTid.T20_24, VagtTid.T00_04, VagtTid.T04_08]:
+        if tid in pejlegast_b:
+            return pejlegast_b[tid]
+
+    for tid in [VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]:
+        if tid in pejlegast_b:
+            return pejlegast_b[tid]
+
+    return -1
 
 def get_chronological_vagthavende(
     time: VagtTid,
@@ -334,17 +393,19 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
         dækselev_i_kabys = _vl.vagter[VagtTid.ALL_DAY].opgaver[Opgave.DAEKSELEV_I_KABYS]
         unavailable_numbers.append(dækselev_i_kabys)
 
-    if (
-        time == VagtTid.T15_20
-        and vl_one_day_ago is not None
-        and vl_one_day_ago.vagttype == VagtType.SOEVAGT
-        and vl_one_day_ago.starting_shift == vl.starting_shift
-        and VagtTid.T15_20 in vl_one_day_ago.vagter
-        and Opgave.PEJLEGAST_B in vl_one_day_ago.vagter[VagtTid.T15_20].opgaver
-        and vl_one_day_ago.vagter[VagtTid.T15_20].opgaver[Opgave.PEJLEGAST_B] != vagt.opgaver[Opgave.VAGTHAVENDE_ELEV]
-    ):
-        unavailable_numbers.append(vl_one_day_ago.vagter[VagtTid.T15_20].opgaver[Opgave.PEJLEGAST_B])
-
+    # Reserve the last pejlegast b from the skifte
+    last_pejlegast_b = get_last_pejlegast_b_from_skifte(
+        time,
+        vl,
+        registry,
+        skifte,
+    )
+    if last_pejlegast_b != -1:
+        if last_pejlegast_b in unavailable_numbers:
+            last_pejlegast_b = -1
+        else:
+            unavailable_numbers.append(last_pejlegast_b)
+        
     # if nattevagt, find dagsvagter and add to unavailable_numbers
     fysiske_vagter = [Opgave.ORDONNANS, Opgave.UDKIG, Opgave.RADIOVAGT, Opgave.RORGAENGER]
 
@@ -385,7 +446,7 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
         unavailable_numbers.append(vagt.opgaver[opgave])
 
     if time == VagtTid.T15_20:
-        # If vl one days ago is None or the shift for that time is not the same, create 2 random numbers
+        # If the last pejlegast b from the skifte is not in the unavailable numbers, create 2 random numbers
         def create_2_pejlegasts() -> None:
             if Opgave.PEJLEGAST_A not in vagt.opgaver:
                 vagt.opgaver[Opgave.PEJLEGAST_A] = pick_least(
@@ -398,26 +459,13 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
                     unavailable_numbers, filter_by_opgave(Opgave.PEJLEGAST_B, skifte_stats)
                 )
             unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_B])
+        
+        # Make the last pejlegast b from the skifte the pejlegast a
+        if last_pejlegast_b != -1:
+            vagt.opgaver[Opgave.PEJLEGAST_A] = last_pejlegast_b
+            unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_A])
 
-        if vl_one_day_ago is not None:
-            if vl_one_day_ago.starting_shift != vl.starting_shift:
-                create_2_pejlegasts()
-            if (
-                time in vl_one_day_ago.vagter
-                and Opgave.PEJLEGAST_B in vl_one_day_ago.vagter[time].opgaver
-                and vl_one_day_ago.vagter[time].opgaver[Opgave.PEJLEGAST_B] != vagt.opgaver[Opgave.VAGTHAVENDE_ELEV]
-            ):
-                vagt.opgaver[Opgave.PEJLEGAST_A] = vl_one_day_ago.vagter[time].opgaver[Opgave.PEJLEGAST_B]
-                unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_A])
-                if Opgave.PEJLEGAST_B not in vagt.opgaver:
-                    vagt.opgaver[Opgave.PEJLEGAST_B] = pick_least(
-                        unavailable_numbers, filter_by_opgave(Opgave.PEJLEGAST_B, skifte_stats)
-                    )
-                unavailable_numbers.append(vagt.opgaver[Opgave.PEJLEGAST_B])
-            else:
-                create_2_pejlegasts()
-        else:
-            create_2_pejlegasts()
+        create_2_pejlegasts()
 
     if time in [VagtTid.T04_08, VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]:
         if dækselev_i_kabys != 0:
