@@ -468,11 +468,24 @@ def autofill_vagt(skifte: VagtSkifte, time: VagtTid, vl: VagtListe, registry: 'R
         create_2_pejlegasts()
 
     if time in [VagtTid.T04_08, VagtTid.T08_12, VagtTid.T12_15, VagtTid.T15_20]:
+
+        vl_one_day_ago_dækselev_i_kabys: list[int] = []
+        if vl_one_day_ago is not None:
+            for _, vagt_one_day_ago in vl_one_day_ago.vagter.items():
+                if vagt_one_day_ago.vagt_skifte != skifte:
+                    continue
+                if Opgave.DAEKSELEV_I_KABYS in vagt_one_day_ago.opgaver:
+                    vl_one_day_ago_dækselev_i_kabys.append(vagt_one_day_ago.opgaver[Opgave.DAEKSELEV_I_KABYS])
+        # If the time is T04_08, then also add the dækselev_i_kabys from T15_20
+        if time == VagtTid.T04_08:
+            if Opgave.DAEKSELEV_I_KABYS in vagt.opgaver:
+                vl_one_day_ago_dækselev_i_kabys.append(vl.vagter[VagtTid.T15_20].opgaver[Opgave.DAEKSELEV_I_KABYS])
+
         if dækselev_i_kabys != 0:
             vagt.opgaver[Opgave.DAEKSELEV_I_KABYS] = dækselev_i_kabys
         elif Opgave.DAEKSELEV_I_KABYS not in vagt.opgaver:
             vagt.opgaver[Opgave.DAEKSELEV_I_KABYS] = pick_least(
-                unavailable_numbers, filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
+                [*unavailable_numbers, *vl_one_day_ago_dækselev_i_kabys], filter_by_opgave(Opgave.DAEKSELEV_I_KABYS, skifte_stats)
             )
         unavailable_numbers.append(vagt.opgaver[Opgave.DAEKSELEV_I_KABYS])
 
